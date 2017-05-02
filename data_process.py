@@ -31,7 +31,7 @@ def level7DayLeft(levels):
 		result = raw_connection.query(sql,level)
 		dates_num = []
 		number = []
-		result = zip(*result)
+		result = list(zip(*result))
 		dates_num = result[0]
 		number = result[1]
 		dates = [str(x) for x in dates_num]
@@ -68,7 +68,7 @@ def dateReturn(dates):
 		plt.plot(days,number,'r--')
 		plt.gca().set_xlabel('days')
 		plt.gca().set_ylabel('return')
-		plt.savefig("E:/figures/return_date/" + str(date) + ".jpg")
+		#plt.savefig("E:/figures/return_date/" + str(date) + ".jpg")
 		plt.grid(True)
 		plt.show()
 		plt.cla()
@@ -89,7 +89,7 @@ def dayReturn(days):
 		plt.plot(dates,number,'r--')
 		plt.gca().set_xlabel('date')
 		plt.gca().set_ylabel('return')
-		plt.savefig("E:/figures/return_date/" + str(day) + "day.jpg")
+		#plt.savefig("E:/figures/return_date/" + str(day) + "day.jpg")
 		plt.cla()
 		plt.show()
 
@@ -108,14 +108,16 @@ def levelTotal(start,end):
 	plt.savefig("E:/figures/7DayLeft_level_total/level_total_"+str(start) + "_" + str(end))
 	plt.show()
 
-raw_connection = MysqlConnection("218.108.40.13","wja","wja","statistic")
-total_connection = MysqlConnection("218.108.40.13","wja","wja","wja")
 
-sql = "select date from log_return_s_wja_1_percent"
-result = total_connection.query(sql)
-dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
+if __name__ == '__main__':
+	raw_connection = MysqlConnection("218.108.40.13","wja","wja","statistic")
+	total_connection = MysqlConnection("218.108.40.13","wja","wja","wja")
 
-dayReturn(range(2,31))
+	sql = "select date from log_return_s_wja_1_percent"
+	result = total_connection.query(sql)
+	dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
 
-raw_connection.close()
-total_connection.close()
+	level7DayLeft(range(1,30))
+
+	raw_connection.close()
+	total_connection.close()
