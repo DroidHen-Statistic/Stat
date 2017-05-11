@@ -18,13 +18,13 @@ def fitDateReturn(dates):
 			return_num[i] /= 100
 		days = list(range(2,31))
 		plt.plot(days,return_num,'r--')
-		popt, pcov = curve_fit(func, days[0:7], return_num[0:7])
+		popt, pcov = curve_fit(func, days[0:14], return_num[0:14])
 		print(popt)
 		y = [func(day,popt[0],popt[1]) for day in days]
 		plt.plot(days,y,'b--')
 		plt.grid(True)
 		#plt.show()
-		plt.savefig("E:/python/stat/figures/return_date_fit/"+str(date)+".jpg")
+		plt.savefig("E:/python/stat/figures/return_date_fit/14day/"+str(date)+".jpg")
 		plt.cla()
 	connection.close()
 	return popt
@@ -36,4 +36,4 @@ if __name__ == '__main__':
 	dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
 	connection.close()
 
-	popt = fitDateReturn(dates)
+	popt = fitDateReturn(dates[5:])

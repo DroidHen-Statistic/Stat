@@ -108,6 +108,34 @@ def levelTotal(start,end):
 	plt.savefig("E:/figures/7DayLeft_level_total/level_total_"+str(start) + "_" + str(end))
 	plt.show()
 
+def dauAnddnu():
+	sql = "select date, login_count, register_count from log_return_s_wja_1_percent"
+	result = total_connection.query(sql)
+	result = list(zip(*result))
+	dates = [str(x) for x in result[0]]
+	plt.figure
+	plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d'))#设置时间标签显示格式
+	plt.gca().xaxis.set_major_locator(mdate.AutoDateLocator())
+	plt.xticks(pd.date_range(dates[0],dates[-1],freq='5d'))#时间间隔
+	plt.xticks(rotation = 90)
+	dau = result[1]
+	dnu = result[2]
+	old_user = []
+	for i in range(len(dau)):
+		old_user.append(dau[i] - dnu[i])
+	plt.plot(dates,dau,'r-o',label = "dau")
+	plt.plot(dates,dnu,'b-o',label = "dnu")
+	plt.plot(dates,old_user,'g-o',label = "old_user")
+	fig = plt.gcf()
+	fig.set_size_inches(19,9)
+	plt.gca().set_xlabel('date')
+	plt.gca().set_ylabel('user')
+	plt.legend(loc='upper right')
+	#plt.savefig("E:/python/stat/figures/dau and dnu.jpg",dpi=100)
+	plt.show()
+
+
+
 
 if __name__ == '__main__':
 	raw_connection = MysqlConnection("218.108.40.13","wja","wja","statistic")
@@ -117,7 +145,7 @@ if __name__ == '__main__':
 	result = total_connection.query(sql)
 	dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
 
-	level7DayLeft(range(1,30))
+	dauAnddnu()
 
 	raw_connection.close()
 	total_connection.close()
