@@ -76,24 +76,25 @@ def dateReturn(dates):
 def dayReturn(days):
 	for day in days:
 		sql = "select date, "+ str(day) + "day from log_return_s_wja_1_percent"
-		print(sql)
 		result = total_connection.query(sql)
 		result = list(zip(*result))
 		number = result[1]
 		dates_num = result[0]
 		dates = [str(x) for x in dates_num]
+		fig = plt.gcf()
+		fig.set_size_inches(18,9)
 		plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d'))#设置时间标签显示格式
 		plt.gca().xaxis.set_major_locator(mdate.AutoDateLocator())
 		plt.xticks(pd.date_range(dates[0],dates[-1],freq='5d'))#时间间隔
 		plt.xticks(rotation = 90)
-		plt.plot(dates,number,'r--')
+		plt.plot(dates,number,'r-o',label = str(day) + "day return")
 		plt.gca().set_xlabel('date')
-		plt.gca().set_ylabel('return')
-		#plt.savefig("E:/figures/return_date/" + str(day) + "day.jpg")
+		plt.gca().set_ylabel('return percent(%)')
+		plt.legend(loc = "upper right")
+		plt.grid(True)
+		plt.savefig("E:/python/stat/figures/return_day/" + str(day) + "day.jpg")
+		#plt.show()
 		plt.cla()
-		plt.show()
-
-
 
 def levelTotal(start,end):
 	sql = "select * from log_level_left_total"
@@ -113,7 +114,6 @@ def dauAnddnu():
 	result = total_connection.query(sql)
 	result = list(zip(*result))
 	dates = [str(x) for x in result[0]]
-	plt.figure
 	plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d'))#设置时间标签显示格式
 	plt.gca().xaxis.set_major_locator(mdate.AutoDateLocator())
 	plt.xticks(pd.date_range(dates[0],dates[-1],freq='5d'))#时间间隔
@@ -134,8 +134,27 @@ def dauAnddnu():
 	#plt.savefig("E:/python/stat/figures/dau and dnu.jpg",dpi=100)
 	plt.show()
 
-
-
+def dauAnddnu_Bar():
+	sql = "select date, login_count, register_count from log_return_s_wja_1_percent"
+	result = total_connection.query(sql)
+	result = list(zip(*result))
+	dates = [str(x) for x in result[0]]
+	fig = plt.gcf()
+	fig.set_size_inches(18,9)
+	plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d'))#设置时间标签显示格式
+	plt.gca().xaxis.set_major_locator(mdate.AutoDateLocator())
+	plt.xticks(pd.date_range(dates[0],dates[-1],freq='5d'))#时间间隔
+	plt.xticks(rotation = 90)
+	dau = result[1]
+	dnu = result[2]
+	old_user = []
+	for i in range(len(dau)):
+		old_user.append(dau[i] - dnu[i])
+	plt.bar(dates,old_user,width = 0.35,label = "old_user")
+	plt.bar(dates,dnu,bottom=old_user,width = 0.35, label = "dnu")
+	plt.legend(loc = 'upper right')
+	plt.savefig("E:/python/stat/figures/dau and dnu bar.jpg",dpi=100)
+	plt.show()
 
 if __name__ == '__main__':
 	raw_connection = MysqlConnection("218.108.40.13","wja","wja","statistic")
@@ -145,7 +164,7 @@ if __name__ == '__main__':
 	result = total_connection.query(sql)
 	dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
 
-	dauAnddnu()
+	dauAnddnu_Bar()
 
 	raw_connection.close()
 	total_connection.close()
