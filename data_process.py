@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdate
 import pandas as pd
 from functools import reduce
+import os
 
-def calulateTotalReturn():
+def calculateTotalReturn():
 	sql = "select date from log_return_s_wja_1"
 	result = raw_connection.query(sql)
 	dates = []
@@ -20,7 +21,7 @@ def calulateTotalReturn():
 		temp[4] = [-2]
 		temp = list(map(sum,temp))
 		for i in range(5,34):
-			temp[i] = temp[i] / temp[1] * 100
+			temp[i] = temp[i] / temp[2] * 100
 		sql = "insert into log_return_s_wja_1_percent VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
 		total_connection.query(sql,tuple(temp))
 
@@ -68,8 +69,8 @@ def dateReturn(dates):
 		plt.plot(days,number,'r--')
 		plt.gca().set_xlabel('days')
 		plt.gca().set_ylabel('return')
-		#plt.savefig("E:/figures/return_date/" + str(date) + ".jpg")
 		plt.grid(True)
+		#plt.savefig("E:/python/stat/figures/return_date/" + str(date) + ".jpg")
 		plt.show()
 		plt.cla()
 
@@ -79,6 +80,10 @@ def dayReturn(days):
 		result = total_connection.query(sql)
 		result = list(zip(*result))
 		number = result[1]
+		s_number = sorted(number)
+		with open(os.path.dirname(__file__) + '/' + str(day) + 'day_return.txt','w') as f:
+			f.write(str(s_number))
+		print(s_number)
 		dates_num = result[0]
 		dates = [str(x) for x in dates_num]
 		fig = plt.gcf()
@@ -92,7 +97,7 @@ def dayReturn(days):
 		plt.gca().set_ylabel('return percent(%)')
 		plt.legend(loc = "upper right")
 		plt.grid(True)
-		plt.savefig("E:/python/stat/figures/return_day/" + str(day) + "day.jpg")
+		#plt.savefig("E:/python/stat/figures/return_day/" + str(day) + "day.jpg")
 		#plt.show()
 		plt.cla()
 
@@ -106,7 +111,7 @@ def levelTotal(start,end):
 	plt.gca().set_xlabel('level')
 	plt.gca().set_ylabel('user_7day')
 	plt.grid(True)
-	plt.savefig("E:/figures/7DayLeft_level_total/level_total_"+str(start) + "_" + str(end))
+	#plt.savefig("E:/figures/7DayLeft_level_total/level_total_"+str(start) + "_" + str(end))
 	plt.show()
 
 def dauAnddnu():
@@ -164,7 +169,7 @@ if __name__ == '__main__':
 	result = total_connection.query(sql)
 	dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
 
-	dauAnddnu_Bar()
+	dayReturn(range(2,31))
 
 	raw_connection.close()
 	total_connection.close()
