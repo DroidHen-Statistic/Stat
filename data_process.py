@@ -41,7 +41,7 @@ def level7DayLeft(levels):
 		plt.xticks(pd.date_range(dates[0],dates[-1],freq='5d'))#时间间隔
 		plt.xticks(rotation = 90)
 		plt.plot(dates,number,'r--')
-		#plt.savefig('E:/figures/7DayLeft_level/' + str(level) + ".jpg")  
+		#plt.savefig(os.path.dirname(__file__) + "/figures/7DayLeft_level/' + str(level) + ".jpg")  
 		plt.cla()
 		plt.show()
 
@@ -70,7 +70,7 @@ def dateReturn(dates):
 		plt.gca().set_xlabel('days')
 		plt.gca().set_ylabel('return')
 		plt.grid(True)
-		#plt.savefig("E:/python/stat/figures/return_date/" + str(date) + ".jpg")
+		#plt.savefig(os.path.dirname(__file__) + "/figures/return_date/" + str(date) + ".jpg")
 		plt.show()
 		plt.cla()
 
@@ -80,10 +80,10 @@ def dayReturn(days):
 		result = total_connection.query(sql)
 		result = list(zip(*result))
 		number = result[1]
-		s_number = sorted(number)
-		with open(os.path.dirname(__file__) + '/' + str(day) + 'day_return.txt','w') as f:
-			f.write(str(s_number))
-		print(s_number)
+		# s_number = sorted(number)
+		# with open(os.path.dirname(__file__) + '/' + str(day) + 'day_return.txt','w') as f:
+		# 	f.write(str(s_number))
+		# print(s_number)
 		dates_num = result[0]
 		dates = [str(x) for x in dates_num]
 		fig = plt.gcf()
@@ -97,9 +97,14 @@ def dayReturn(days):
 		plt.gca().set_ylabel('return percent(%)')
 		plt.legend(loc = "upper right")
 		plt.grid(True)
-		#plt.savefig("E:/python/stat/figures/return_day/" + str(day) + "day.jpg")
+		#plt.savefig(os.path.dirname(__file__) + "/figures/return_day/" + str(day) + "day.jpg")
 		#plt.show()
 		plt.cla()
+
+		fig.set_size_inches(10,5)
+		plt.hist(number)
+		plt.savefig("E:/python/stat/figures/return_day/hist/" + str(day) + "day.jpg")
+		#plt.show()
 
 def levelTotal(start,end):
 	sql = "select * from log_level_left_total"
@@ -111,7 +116,7 @@ def levelTotal(start,end):
 	plt.gca().set_xlabel('level')
 	plt.gca().set_ylabel('user_7day')
 	plt.grid(True)
-	#plt.savefig("E:/figures/7DayLeft_level_total/level_total_"+str(start) + "_" + str(end))
+	#plt.savefig(os.path.dirname(__file__) + "/figures/7DayLeft_level_total/level_total_"+str(start) + "_" + str(end))
 	plt.show()
 
 def dauAnddnu():
@@ -136,7 +141,7 @@ def dauAnddnu():
 	plt.gca().set_xlabel('date')
 	plt.gca().set_ylabel('user')
 	plt.legend(loc='upper right')
-	#plt.savefig("E:/python/stat/figures/dau and dnu.jpg",dpi=100)
+	#plt.savefig(os.path.dirname(__file__) + "/figures/dau and dnu.jpg",dpi=100)
 	plt.show()
 
 def dauAnddnu_Bar():
@@ -158,7 +163,7 @@ def dauAnddnu_Bar():
 	plt.bar(dates,old_user,width = 0.35,label = "old_user")
 	plt.bar(dates,dnu,bottom=old_user,width = 0.35, label = "dnu")
 	plt.legend(loc = 'upper right')
-	plt.savefig("E:/python/stat/figures/dau and dnu bar.jpg",dpi=100)
+	plt.savefig(os.path.dirname(__file__) + "/figures/dau and dnu bar.jpg",dpi=100)
 	plt.show()
 
 if __name__ == '__main__':

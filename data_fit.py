@@ -18,42 +18,32 @@ def fitDateReturn(dates):
 	sql = "select * from log_return_s_wja_1_percent where date = %s"
 	popts = []
 	days = list(range(2,31))
-	return_num = []
+	return_num = {}
+	data = []
 	for date in dates:
 		result = connection.query(sql,date)
-		return_num = result[0][5:34]
-		# for i in range(len(return_num)):
-		# 	return_num[i] /= 100
-		plt.plot(days,return_num,'r--')
-		popt, pcov = curve_fit(func, days, return_num)
-		popts.append(popt)
+		return_num[date] = result[0][5:34]
+		data = data + result[0][5:34]
+	plt.plot(days * len(dates), data,'o')
+
+	popt, pcov = curve_fit(func, days * len(dates), data)
+	y = [func(day,popt[0],popt[1],popt[2]) for day in days]
+	plt.plot(days, y,'b')
+	plt.show()
+	plt.cla()
+
+	for date in dates:
 		print("------",date,"------")
-		print(popt)
-		y = [func(day,popt[0],popt[1],popt[2]) for day in days]
-		#y = [func(day,popt[0]) for day in days]
-		plt.plot(days,y,'b--')
+		plt.plot(days,return_num[date],'r--',label = 'origin')
+		plt.plot(days,y,'b--',label = 'fit curve')
+		plt.legend(loc = 'upper right')
 		plt.grid(True)
 		#plt.show()
-		plt.savefig("E:/python/stat/figures/return_date_fit/all/"+str(date)+".jpg")
-		plt.cla()
-
-	popts = list(zip(*popts))
-	popts = list(map(average,popts))
-	y = [func(day,popts[0],popts[1],popts[2]) for day in days]
-
-	for date in dates:
-		result = connection.query(sql,date)
-		return_num = result[0][5:34]
-		# for i in range(len(return_num)):
-		# 	return_num[i] /= 100
-		plt.plot(days,return_num,'r--')
-		plt.plot(days,y,'b--')
-		plt.grid(True)
-		plt.savefig("E:/python/stat/figures/return_date_fit/average/"+str(date)+".jpg")
+		#plt.savefig("E:/python/stat/figures/return_date_fit/all/"+str(date)+".jpg")
 		plt.cla()
 
 	connection.close()
-	return popt, popts
+	return popt, pcov
 
 if __name__ == '__main__':
 	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
@@ -62,4 +52,5 @@ if __name__ == '__main__':
 	dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
 	connection.close()
 
-	[popt,popts] = fitDateReturn(dates[5:-29])
+	popt,pcov = fitDateReturn(dates[5:-29])
+	print(popt,pcov)
