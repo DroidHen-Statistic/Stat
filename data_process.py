@@ -28,6 +28,37 @@ def calculateTotalReturn():
 		sql = "insert into log_return_s_wja_1_percent VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
 		total_connection.query(sql,tuple(temp))
 
+def calculateChannelTotalReturn():
+	"""
+	统计不同channel_id的留存数据，并以百分比的形式保存在新表中
+	"""
+	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	sql = "select date, channel_id from log_return_s_wja_1"
+	result = connection.query(sql)
+	result = list(zip(*result))
+	dates = sorted(list(set(result[0])))
+	channels = sorted(list(set(result[1])))
+
+	for date in dates:
+		for channel in channels:
+			sql = "select * from log_return_s_wja_1 where date = %s and channel_id = %s"
+			result = connection.query(sql,[date,channel])
+			if(len(result)!=0):
+				temp = list(zip(*result))
+				temp[0] = [date]
+				temp[3] = [-2]
+				temp[4] = [channel]
+				temp = list(map(sum,temp))
+				if(temp[2] != 0):
+					for i in range(5,34):
+						temp[i] = temp[i] / temp[2] * 100
+				print(date,"-----",channel)
+				sql = "insert into log_return_s_wja_1_percent VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+				connection.query(sql,tuple(temp))
+	connection.close()
+
+
+
 def level7DayLeft(levels):
 	"""
 	各个等级在不同日期的7日留存数
@@ -78,7 +109,7 @@ def date7DayLeft(dates):
 		plt.plot(level,number,'ro-')
 		plt.show()
 
-def dateReturn(dates):
+def dateReturn(dates,channels = [-2]):
 	"""
 	某天注册的用户留存情况
 	
@@ -86,20 +117,27 @@ def dateReturn(dates):
 	
 	Arguments:
 		dates {list} -- 要统计的日期，以列表形式给出
+		channels {list} -- 要统计的channel_id,以列表形式给出，-2 为统计总和，默认为-2
 	"""
-	sql = "select * from log_return_s_wja_1_percent where date = %s"
-	for date in dates:
-		print("------------",date,"--------------")
-		result = total_connection.query(sql,date)
-		number = result[0][5:34]
-		days = range(2,31)
-		plt.plot(days,number,'r--')
-		plt.gca().set_xlabel('days')
-		plt.gca().set_ylabel('return')
-		plt.grid(True)
-		#plt.savefig(os.path.dirname(__file__) + "/figures/return_date/" + str(date) + ".jpg")
-		plt.show()
-		plt.cla()
+	sql = "select * from log_return_s_wja_1_percent where date = %s and channel_id = %s"
+	for channel in channels:
+		path = os.path.abspath(os.path.dirname(__file__)) + "/figures/return_date/channe_" + str(channel)
+		if not os.path.exists(path):
+			os.mkdir(path)
+		for date in dates:
+			print("------------date:",date," channel:",channel,"--------------")
+			result = total_connection.query(sql,[date,channel])
+			if(len(result) != 0):
+				number = result[0][5:34]
+				days = range(2,31)
+				plt.plot(days,number,'r--')
+				plt.gca().set_xlabel('days')
+				plt.gca().set_ylabel('return')
+				plt.grid(True)
+				plt.savefig(path + "/"+ str(date) + ".jpg")
+				#plt.show()
+				plt.cla()
+
 
 def dayReturn(days):
 	"""
@@ -111,8 +149,8 @@ def dayReturn(days):
 		days {list} -- 要统计的n日留存，以列表方式给出
 	"""
 	for day in days:
-		sql = "select date, "+ str(day) + "day from log_return_s_wja_1_percent"
-		result = total_connection.query(sql)
+		sql = "select date, "+ str(day) + "day from log_return_s_wja_1_percent where channel_id = %s"
+		result = total_connection.query(sql,-2)
 		result = list(zip(*result))
 		number = result[1]
 		# s_number = sorted(number)
@@ -168,8 +206,8 @@ def dauAnddnu():
 	绘制每日活跃用户、新增用户以及两者差值（老用户）的曲线图
 	
 	"""
-	sql = "select date, login_count, register_count from log_return_s_wja_1_percent"
-	result = total_connection.query(sql)
+	sql = "select date, login_count, register_count from log_return_s_wja_1_percent where channel_id = %s"
+	result = total_connection.query(sql,-2)
 	result = list(zip(*result))
 	dates = [str(x) for x in result[0]]
 	plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d'))#设置时间标签显示格式
@@ -196,8 +234,8 @@ def dauAnddnu_Bar():
 	"""
 	dau和dnu的直方图
 	"""
-	sql = "select date, login_count, register_count from log_return_s_wja_1_percent"
-	result = total_connection.query(sql)
+	sql = "select date, login_count, register_count from log_return_s_wja_1_percent where channel_id = %s"
+	result = total_connection.query(sql,-2)
 	result = list(zip(*result))
 	dates = [str(x) for x in result[0]]
 	fig = plt.gcf()
@@ -224,8 +262,8 @@ if __name__ == '__main__':
 	sql = "select date from log_return_s_wja_1_percent"
 	result = total_connection.query(sql)
 	dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
-
-	dayReturn(range(2,31))
+	print(os.path.dirname(__file__))
+	dateReturn(dates,[-1,3,66])
 
 	raw_connection.close()
 	total_connection.close()
