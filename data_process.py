@@ -6,6 +6,9 @@ from functools import reduce
 import os
 
 def calculateTotalReturn():
+	"""
+	统计每天总的留存，并以百分比的形式保存在新表中
+	"""
 	sql = "select date from log_return_s_wja_1"
 	result = raw_connection.query(sql)
 	dates = []
@@ -26,6 +29,14 @@ def calculateTotalReturn():
 		total_connection.query(sql,tuple(temp))
 
 def level7DayLeft(levels):
+	"""
+	各个等级在不同日期的7日留存数
+	
+	按天统计各个等级7日留存，并以日期为横坐标，留存为纵坐标，每个等级画出一张图
+	
+	Arguments:
+		levels {list} -- 要统计的等级，以列表形式给出
+	"""
 	sql = "select date,user_7day from log_level_left_s_wja_1 where level = %s"
 	#sql = "select * from test"
 	for level in levels:
@@ -46,6 +57,14 @@ def level7DayLeft(levels):
 		plt.show()
 
 def date7DayLeft(dates):
+	"""
+	每日的各等级7日留存统计
+	
+	统计同一天的各个等级的7日留存数据，并以等级为横坐标，留存为纵坐标，每天画出一张图
+	
+	Arguments:
+		dates {list} -- 要统计的日期，以列表形式给出
+	"""
 	sql = "select * from log_level_left_s_wja_1 where date = %s"
 	for date in dates:
 		print("------------",date,"--------------")
@@ -60,6 +79,14 @@ def date7DayLeft(dates):
 		plt.show()
 
 def dateReturn(dates):
+	"""
+	某天注册的用户留存情况
+	
+	获取某一天注册的用户留存数据，并以天数为横坐标，留存率为纵坐标，每天做出一张图
+	
+	Arguments:
+		dates {list} -- 要统计的日期，以列表形式给出
+	"""
 	sql = "select * from log_return_s_wja_1_percent where date = %s"
 	for date in dates:
 		print("------------",date,"--------------")
@@ -75,6 +102,14 @@ def dateReturn(dates):
 		plt.cla()
 
 def dayReturn(days):
+	"""
+	n-day留存情况
+	
+	获取不同日期下的同一个n-day 留存（2<=n<=30）,并以日期为横坐标，留存率为纵坐标，每一个n作出一张图
+	
+	Arguments:
+		days {list} -- 要统计的n日留存，以列表方式给出
+	"""
 	for day in days:
 		sql = "select date, "+ str(day) + "day from log_return_s_wja_1_percent"
 		result = total_connection.query(sql)
@@ -103,10 +138,19 @@ def dayReturn(days):
 
 		fig.set_size_inches(10,5)
 		plt.hist(number)
-		plt.savefig("E:/python/stat/figures/return_day/hist/" + str(day) + "day.jpg")
+		plt.savefig(os.path.dirname(__file__) + "/figures/return_day/hist/" + str(day) + "day.jpg")
 		#plt.show()
 
 def levelTotal(start,end):
+	"""
+	画出每个等级的7日流失人数总和分布
+	
+	获取每个等级的7日流失用户总数，并以等级为横坐标，人数为纵坐标画图
+	
+	Arguments:
+		start {int} -- 要统计的起始等级
+		end {int} -- 要统计的结束等级
+	"""
 	sql = "select * from log_level_left_total"
 	result = total_connection.query(sql)
 	result = list(zip(*result))
@@ -120,6 +164,10 @@ def levelTotal(start,end):
 	plt.show()
 
 def dauAnddnu():
+	"""
+	绘制每日活跃用户、新增用户以及两者差值（老用户）的曲线图
+	
+	"""
 	sql = "select date, login_count, register_count from log_return_s_wja_1_percent"
 	result = total_connection.query(sql)
 	result = list(zip(*result))
@@ -145,6 +193,9 @@ def dauAnddnu():
 	plt.show()
 
 def dauAnddnu_Bar():
+	"""
+	dau和dnu的直方图
+	"""
 	sql = "select date, login_count, register_count from log_return_s_wja_1_percent"
 	result = total_connection.query(sql)
 	result = list(zip(*result))
