@@ -255,6 +255,78 @@ def dauAnddnu_Bar():
 	plt.savefig(os.path.dirname(__file__) + "/figures/dau and dnu bar.jpg",dpi=100)
 	plt.show()
 
+def dnuOfChannelId(channels = [-2]):
+	"""
+	不同channel_id的dnu人数柱状图
+	
+	
+	"""	
+	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	sql = "select date, register_count from log_return_s_wja_1_percent where channel_id = %s"
+	pre = channels[0]
+	for channel in channels:
+
+		result = connection.query(sql,channel)
+		result = list(zip(*result))
+		dates = [str(x) for x in result[0]]
+		register_count = result[1]
+		fig = plt.gcf()
+		fig.set_size_inches(18,9)
+		plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d'))#设置时间标签显示格式
+		plt.gca().xaxis.set_major_locator(mdate.AutoDateLocator())
+		plt.xticks(pd.date_range(dates[0],dates[-1],freq='5d'))#时间间隔
+		plt.xticks(rotation = 90)
+		if channel == pre:
+			plt.bar(dates,register_count,width = 0.35,label = channel)
+		else:
+			plt.bar(dates,register_count,bottom = pre, width = 0.35,label = channel)
+			pre = channel
+	plt.legend(loc = 'upper right')
+	plt.show()
+
+def dnuOfChannelID_Percent(channels = [-1]):
+	"""[summary]
+	
+	[description]
+	
+	Keyword Arguments:
+		channels {list} -- [description] (default: {[-1]})
+	"""
+	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	sql = "select date,register_count from log_return_s_wja_1_percent where channel_id = %s"
+	result = connection.query(sql,-2)
+	result = list(zip(*result))
+	dates = [str(x) for x in result[0]]
+	total_register = result[1]
+	sql = "select date,register_count from log_return_s_wja_1_percent where date = %s and channel_id = %s"
+	for channel in channels:
+		path = os.path.abspath(os.path.dirname(__file__)) + "/figures"
+		if not os.path.exists(path):
+			os.mkdir(path)
+		register_count = []
+		for i in range(len(dates)):
+			result = connection.query(sql,[dates[i],channel])
+			if len(result):
+				register_count.append(result[0][1]/total_register[i])
+			else:
+				register_count.append(0)
+			fig = plt.gcf()
+			fig.set_size_inches(18,9)
+			plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d'))#设置时间标签显示格式
+			plt.gca().xaxis.set_major_locator(mdate.AutoDateLocator())
+			plt.xticks(pd.date_range(dates[0],dates[-1],freq='5d'))#时间间隔
+			plt.xticks(rotation = 90)
+		plt.plot(dates,register_count,label = channel)
+		plt.legend(loc = 'upper right')
+		plt.savefig(path + "/dnu_percent_" + str(channel) + ".jpg",dpi=100)
+		#plt.show()
+
+
+
+
+
+
+
 if __name__ == '__main__':
 	raw_connection = MysqlConnection("218.108.40.13","wja","wja","statistic")
 	total_connection = MysqlConnection("218.108.40.13","wja","wja","wja")
@@ -262,8 +334,8 @@ if __name__ == '__main__':
 	sql = "select date from log_return_s_wja_1_percent"
 	result = total_connection.query(sql)
 	dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
-	print(os.path.dirname(__file__))
-	dateReturn(dates,[-1,3,66])
+
+	dnuOfChannelID_Percent([-1,3,66])
 
 	raw_connection.close()
 	total_connection.close()

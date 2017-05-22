@@ -28,7 +28,7 @@ def fitDateReturn(dates,channels = [-2]):
 
 	Arguments:
 		dates {list} -- 数据样本的日期
-		channels {list} -- 要拟合的channel_id,默认-2
+		channels {list} -- 要拟合的channel_id,以列表方式给出，默认[-2]
 	"""
 	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
 	sql = "select * from log_return_s_wja_1_percent where date = %s and channel_id = %s"
