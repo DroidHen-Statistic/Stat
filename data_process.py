@@ -58,7 +58,6 @@ def calculateChannelTotalReturn():
 	connection.close()
 
 
-
 def level7DayLeft(levels):
 	"""
 	各个等级在不同日期的7日留存数
@@ -189,17 +188,58 @@ def levelTotal(start,end):
 		start {int} -- 要统计的起始等级
 		end {int} -- 要统计的结束等级
 	"""
+	path = os.path.abspath(os.path.dirname(__file__)) + "/figures/level_left"
+	if not os.path.exists(path):
+		os.mkdir(path)
+	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
 	sql = "select * from log_level_left_total"
-	result = total_connection.query(sql)
+	result = connection.query(sql)
 	result = list(zip(*result))
 	level = result[0][start:end]
 	user_7day = result[1][start:end]
-	plt.plot(level,user_7day)
+	plt.grid(True)
+	plt.bar(level,user_7day)
 	plt.gca().set_xlabel('level')
 	plt.gca().set_ylabel('user_7day')
-	plt.grid(True)
-	#plt.savefig(os.path.dirname(__file__) + "/figures/7DayLeft_level_total/level_total_"+str(start) + "_" + str(end))
+	plt.savefig(path + "/level_left_total_" + str(start) + "_" + str(end))
 	plt.show()
+	connection.close()
+
+def relativeLevelLeft(start,end):
+	path = os.path.abspath(os.path.dirname(__file__)) + "/figures/level_left"
+	if not os.path.exists(path):
+		os.mkdir(path)
+	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	sql = "select * from log_level_left_total"
+	result = connection.query(sql)
+	result = list(zip(*result))
+	level = result[0]
+	user_7day = result[1]
+	left_total = {}
+	for i in range(len(level)):
+		left_total[level[i]] = user_7day[i]
+	relative_left = []
+	for i in range(start,end + 1):
+		pre = 0
+		n = 0
+		for j in range(i-5,i):
+			if j in left_total:
+				n += 1
+				pre = pre + left_total[j]
+		if pre != 0:
+			relative_left.append(left_total[i]/(pre/n))
+		else:
+			relative_left.append(0)
+
+	x = list(range(start,end + 1))
+	plt.gca().set_xlabel('level')
+	plt.gca().set_ylabel('relative left rate')
+	plt.plot(x,relative_left)
+	plt.grid(True)
+	plt.savefig(path + "/relative_level_left" + str(start) + "_" + str(end))
+	plt.show()
+
+
 
 def dauAnddnu():
 	"""
@@ -283,14 +323,14 @@ def dnuOfChannelId(channels = [-2]):
 			pre = channel
 	plt.legend(loc = 'upper right')
 	plt.show()
+	connection.close()
 
 def dnuOfChannelID_Percent(channels = [-1]):
-	"""[summary]
-	
-	[description]
+	"""
+	dnu不同channel占总数的比例曲线图
 	
 	Keyword Arguments:
-		channels {list} -- [description] (default: {[-1]})
+		channels {list} -- 要统计的channel，以列表形式给出 (default: {[-1]})
 	"""
 	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
 	sql = "select date,register_count from log_return_s_wja_1_percent where channel_id = %s"
@@ -320,11 +360,7 @@ def dnuOfChannelID_Percent(channels = [-1]):
 		plt.legend(loc = 'upper right')
 		plt.savefig(path + "/dnu_percent_" + str(channel) + ".jpg",dpi=100)
 		#plt.show()
-
-
-
-
-
+		plt.cla()
 
 
 if __name__ == '__main__':
@@ -335,7 +371,7 @@ if __name__ == '__main__':
 	result = total_connection.query(sql)
 	dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
 
-	dnuOfChannelID_Percent([-1,3,66])
+	relativeLevelLeft(1,50)
 
 	raw_connection.close()
 	total_connection.close()
