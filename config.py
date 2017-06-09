@@ -1,0 +1,7 @@
+base_dir = "E:\\python\\stat"
+dbhost = "218.108.40.13"
+dbname = "wja"
+raw_dbname = "statistic"
+dbuser = "wja"
+dbpassward = "wja"
+log_base_dir = "E:\\log"

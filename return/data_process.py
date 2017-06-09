@@ -1,3 +1,8 @@
+import sys
+sys.path.append("..")
+
+import config
+import utils
 from MysqlConnection import MysqlConnection
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdate
@@ -7,11 +12,11 @@ import os
 
 def calculateTotalReturn():
 	"""
-	统计每天总的留存，并以百分比的形式保存在新表中
+	汇总各个渠道每天总的留存，并以百分比的形式保存在新表中
 	"""
 
-	raw_connection = MysqlConnection("218.108.40.13","wja","wja","statistic")
-	total_connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	raw_connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.raw_dbname)
+	total_connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
 
 	sql = "select date from log_return_s_wja_1"
 	result = raw_connection.query(sql)
@@ -39,7 +44,7 @@ def calculateChannelTotalReturn():
 	"""
 	统计不同channel_id的留存数据，并以百分比的形式保存在新表中
 	"""
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
 	sql = "select date, channel_id from log_return_s_wja_1"
 	result = connection.query(sql)
 	result = list(zip(*result))
@@ -65,64 +70,7 @@ def calculateChannelTotalReturn():
 	connection.close()
 
 
-def level7DayLeft(levels):
-	"""
-	各个等级在不同日期的7日留存数
-	
-	按天统计各个等级7日留存，并以日期为横坐标，留存为纵坐标，每个等级画出一张图
-	
-	Arguments:
-		levels {list} -- 要统计的等级，以列表形式给出
-	"""
 
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
-
-	sql = "select date,user_7day from log_level_left_s_wja_1 where level = %s"
-	#sql = "select * from test"
-	for level in levels:
-		result = connection.query(sql,level)
-		dates_num = []
-		number = []
-		result = list(zip(*result))
-		dates_num = result[0]
-		number = result[1]
-		dates = [str(x) for x in dates_num]
-		plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d'))#设置时间标签显示格式
-		plt.gca().xaxis.set_major_locator(mdate.AutoDateLocator())
-		plt.xticks(pd.date_range(dates[0],dates[-1],freq='5d'))#时间间隔
-		plt.xticks(rotation = 90)
-		plt.plot(dates,number,'r--')
-		#plt.savefig(os.path.dirname(__file__) + "/figures/7DayLeft_level/' + str(level) + ".jpg")  
-		plt.cla()
-		plt.show()
-
-	connection.close()
-
-def date7DayLeft(dates):
-	"""
-	每日的各等级7日留存统计
-	
-	统计同一天的各个等级的7日留存数据，并以等级为横坐标，留存为纵坐标，每天画出一张图
-	
-	Arguments:
-		dates {list} -- 要统计的日期，以列表形式给出
-	"""
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
-
-	sql = "select * from log_level_left_s_wja_1 where date = %s"
-	for date in dates:
-		print("------------",date,"--------------")
-		result = connection.query(sql,date)
-		level = []
-		number = []
-		for record in result:
-			print(record[1], record[2])
-			level.append(record[1])	
-			number.append(record[2])
-		plt.plot(level,number,'ro-')
-		plt.show()
-
-	connection.close()
 
 def dateReturn(dates,channels = [-2]):
 	"""
@@ -134,13 +82,11 @@ def dateReturn(dates,channels = [-2]):
 		dates {list} -- 要统计的日期，以列表形式给出
 		channels {list} -- 要统计的channel_id,以列表形式给出，-2 为统计总和，默认为-2
 	"""
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
 
 	sql = "select * from log_return_s_wja_1_percent where date = %s and channel_id = %s"
 	for channel in channels:
-		path = os.path.abspath(os.path.dirname(__file__)) + "/figures/return_date/channe_" + str(channel)
-		if not os.path.exists(path):
-			os.mkdir(path)
+		path = utils.figure_path("return_date_test", "channel_" + str(channel))
 		for date in dates:
 			print("------------date:",date," channel:",channel,"--------------")
 			result = connection.query(sql,[date,channel])
@@ -151,22 +97,22 @@ def dateReturn(dates,channels = [-2]):
 				plt.gca().set_xlabel('days')
 				plt.gca().set_ylabel('return')
 				plt.grid(True)
-				plt.savefig(path + "/"+ str(date) + ".jpg")
-				#plt.show()
+				#plt.savefig(os.path.join(path,str(date)))
+				plt.show()
 				plt.cla()
 
 	connection.close()
 
-def dayReturn(days):
-	"""
+def dayReturn(days = list(range(2,31))):
+	"""	
 	n-day留存情况
 	
 	获取不同日期下的同一个n-day 留存（2<=n<=30）,并以日期为横坐标，留存率为纵坐标，每一个n作出一张图
 	
-	Arguments:
-		days {list} -- 要统计的n日留存，以列表方式给出
+	Keyword Arguments:
+		days {list} -- 要统计的n日留存，以列表方式给出 (default: {list(range(2,31))})
 	"""
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
 
 	for day in days:
 		sql = "select date, "+ str(day) + "day from log_return_s_wja_1_percent where channel_id = %s"
@@ -190,83 +136,20 @@ def dayReturn(days):
 		plt.gca().set_ylabel('return percent(%)')
 		plt.legend(loc = "upper right")
 		plt.grid(True)
-		#plt.savefig(os.path.dirname(__file__) + "/figures/return_day/" + str(day) + "day.jpg")
-		#plt.show()
+		path = utils.figure_path("return_day_test")
+		plt.savefig(os.path.join(path,str(day) + "day"))
+		plt.show()
 		plt.cla()
 
 		fig.set_size_inches(10,5)
 		plt.hist(number)
-		plt.savefig(os.path.dirname(__file__) + "/figures/return_day/hist/" + str(day) + "day.jpg")
+		path = utils.figure_path("return_day_test","hist")
+		plt.savefig(os.path.join(path,str(day) + "day"))
 		#plt.show()
 	
 	connection.close()
 
-def levelTotal(start,end):
-	"""
-	画出每个等级的7日流失人数总和分布
-	
-	获取每个等级的7日流失用户总数，并以等级为横坐标，人数为纵坐标画图
-	
-	Arguments:
-		start {int} -- 要统计的起始等级
-		end {int} -- 要统计的结束等级
-	"""
 
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
-	path = os.path.abspath(os.path.dirname(__file__)) + "/figures/level_left"
-	if not os.path.exists(path):
-		os.mkdir(path)
-	sql = "select * from log_level_left_total"
-	result = connection.query(sql)
-	result = list(zip(*result))
-	level = result[0][start:end]
-	user_7day = result[1][start:end]
-	plt.grid(True)
-	plt.bar(level,user_7day)
-	plt.gca().set_xlabel('level')
-	plt.gca().set_ylabel('user_7day')
-	plt.savefig(path + "/level_left_total_" + str(start) + "_" + str(end))
-	plt.show()
-
-	connection.close()
-
-def relativeLevelLeft(start,end):
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
-
-	path = os.path.abspath(os.path.dirname(__file__)) + "/figures/level_left"
-	if not os.path.exists(path):
-		os.mkdir(path)
-	
-	sql = "select * from log_level_left_total"
-	result = connection.query(sql)
-	result = list(zip(*result))
-	level = result[0]
-	user_7day = result[1]
-	left_total = {}
-	for i in range(len(level)):
-		left_total[level[i]] = user_7day[i]
-	relative_left = []
-	for i in range(start,end + 1):
-		pre = 0
-		n = 0
-		for j in range(i-5,i):
-			if j in left_total:
-				n += 1
-				pre = pre + left_total[j]
-		if pre != 0:
-			relative_left.append(left_total[i]/(pre/n))
-		else:
-			relative_left.append(0)
-
-	x = list(range(start,end + 1))
-	plt.gca().set_xlabel('level')
-	plt.gca().set_ylabel('relative left rate')
-	plt.plot(x,relative_left)
-	plt.grid(True)
-	plt.savefig(path + "/relative_level_left" + str(start) + "_" + str(end))
-	plt.show()
-
-	connection.close()
 
 
 def dauAnddnu():
@@ -274,7 +157,7 @@ def dauAnddnu():
 	绘制每日活跃用户、新增用户以及两者差值（老用户）的曲线图
 	
 	"""
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
 	sql = "select date, login_count, register_count from log_return_s_wja_1_percent where channel_id = %s"
 	result = connection.query(sql,-2)
 	result = list(zip(*result))
@@ -296,7 +179,8 @@ def dauAnddnu():
 	plt.gca().set_xlabel('date')
 	plt.gca().set_ylabel('user')
 	plt.legend(loc='upper right')
-	#plt.savefig(os.path.dirname(__file__) + "/figures/dau and dnu.jpg",dpi=100)
+	path = utils.figure_path("dau and dnu test")
+	plt.savefig(os.path.join(path,"dau and dnu"),dpi=100)
 	plt.show()
 
 	connection.close()
@@ -306,7 +190,7 @@ def dauAnddnu_Bar():
 	dau和dnu的直方图
 	"""
 
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
 	sql = "select date, login_count, register_count from log_return_s_wja_1_percent where channel_id = %s"
 	result = connection.query(sql,-2)
 	result = list(zip(*result))
@@ -325,18 +209,22 @@ def dauAnddnu_Bar():
 	plt.bar(dates,old_user,width = 0.35,label = "old_user")
 	plt.bar(dates,dnu,bottom=old_user,width = 0.35, label = "dnu")
 	plt.legend(loc = 'upper right')
-	plt.savefig(os.path.dirname(__file__) + "/figures/dau and dnu bar.jpg",dpi=100)
+	path = utils.figure_path("dau and dnu test")
+	plt.savefig(os.path.join(path,"dau and dnu bar"),dpi=100)
 	plt.show()
 
 	connection.close()
 
+
 def dnuOfChannelId(channels = [-2]):
-	"""
+	"""[summary]
+	
 	不同channel_id的dnu人数柱状图
 	
-	
-	"""	
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	Keyword Arguments:
+		channels {list} -- 要统计的channel_id 列表，-2为全部 (default: {[-2]})
+	"""
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
 	sql = "select date, register_count from log_return_s_wja_1_percent where channel_id = %s"
 	pre = channels[0]
 	for channel in channels:
@@ -357,6 +245,8 @@ def dnuOfChannelId(channels = [-2]):
 			plt.bar(dates,register_count,bottom = pre, width = 0.35,label = channel)
 			pre = channel
 	plt.legend(loc = 'upper right')
+	path = utils.figure_path("dau and dnu")
+	plt.savefig(os.path.join(path,"dnu of differente channel"))
 	plt.show()
 	connection.close()
 
@@ -367,7 +257,7 @@ def dnuOfChannelID_Percent(channels = [-1]):
 	Keyword Arguments:
 		channels {list} -- 要统计的channel，以列表形式给出 (default: {[-1]})
 	"""
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
 	sql = "select date,register_count from log_return_s_wja_1_percent where channel_id = %s"
 	result = connection.query(sql,-2)
 	result = list(zip(*result))
@@ -375,9 +265,7 @@ def dnuOfChannelID_Percent(channels = [-1]):
 	total_register = result[1]
 	sql = "select date,register_count from log_return_s_wja_1_percent where date = %s and channel_id = %s"
 	for channel in channels:
-		path = os.path.abspath(os.path.dirname(__file__)) + "/figures"
-		if not os.path.exists(path):
-			os.mkdir(path)
+		path = utils.figure_path()
 		register_count = []
 		for i in range(len(dates)):
 			result = connection.query(sql,[dates[i],channel])
@@ -393,22 +281,34 @@ def dnuOfChannelID_Percent(channels = [-1]):
 			plt.xticks(rotation = 90)
 		plt.plot(dates,register_count,label = channel)
 		plt.legend(loc = 'upper right')
-		plt.savefig(path + "/dnu_percent_" + str(channel) + ".jpg",dpi=100)
+		plt.savefig(os.path.join(path,"dnu_percent_" + str(channel)),dpi=100)
 		#plt.show()
 		plt.cla()
 
 	connection.close()
 
-
-if __name__ == '__main__':
-	# raw_connection = MysqlConnection("218.108.40.13","wja","wja","statistic")
-	# total_connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+def all_dates():
+	"""
+	获取有记录的全部日期的列表
+	
+	Returns:
+		list -- 全部的日期
+	"""
+	total_connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
 
 	sql = "select date from log_return_s_wja_1_percent"
 	result = total_connection.query(sql)
 	dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
 
-	relativeLevelLeft(1,50)
+	total_connection.close()
+	return dates
+
+
+if __name__ == '__main__':
+	
+	dates = all_dates()
+
+	dnuOfChannelId()
 
 	# raw_connection.close()
 	# total_connection.close()

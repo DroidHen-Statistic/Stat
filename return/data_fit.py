@@ -1,3 +1,6 @@
+import sys
+sys.path.append("..")
+
 from MysqlConnection import MysqlConnection
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
@@ -18,17 +21,20 @@ def average(l):
 
 def fitDateReturn(dates,channels = [-2]):
 	"""
-	拟合每日新增用户的30日留存曲线
+	拟合每天新用户的30日留存曲线
 
 	采用scipy 的 curve_fit，原理是最小二乘
 
 	利用10折交叉验证，选取了error最小的一次作为最终模型
-
-	拟合曲线以及原始数据都保存在当前目录下的figure/return-date-fit/10-fold文件夹下
-
+	
 	Arguments:
 		dates {list} -- 数据样本的日期
-		channels {list} -- 要拟合的channel_id,以列表方式给出，默认[-2]
+	
+	Keyword Arguments:
+		channels {list} -- 要拟合的channel_id列表，-2为所有channel总和 (default: {[-2]})
+	
+	Returns:
+		list -- 模型的拟合参数
 	"""
 	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
 	sql = "select * from log_return_s_wja_1_percent where date = %s and channel_id = %s"
@@ -37,9 +43,7 @@ def fitDateReturn(dates,channels = [-2]):
 		popts = []
 		return_num = {}
 		data = []
-		path = os.path.abspath(os.path.dirname(__file__)) +  "/figures/return_date_fit/10-fold/channel_" + str(channel)
-		if not os.path.exists(path):
-			os.mkdir(path)
+		path = utils.figure_path("return_date_fit","10-fold","channel_" + str(channel))
 		for date in dates:
 			result = connection.query(sql,[date,channel])
 			if(len(result)!=0):
@@ -93,18 +97,19 @@ def fitDateReturn(dates,channels = [-2]):
 			plt.legend(loc = 'upper right')
 			plt.grid(True)
 			#plt.show()
-			plt.savefig(path + "/" + str(date)+".jpg")
+			plt.savefig(os.path.join(path,str(date)))
 			plt.cla()
 
 	connection.close()
 	return popt, pcov
 
 if __name__ == '__main__':
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
 	sql = "select date from log_return_s_wja_1_percent"
 	result = connection.query(sql)
 	dates = sorted(list(set(reduce(lambda x,y : x + y, result))))
 	connection.close()
 
 	popt,pcov = fitDateReturn(dates[6:-29],[-1,3,66])
+
 	print(popt,pcov)
