@@ -16,4 +16,4 @@ def item_item_table(game_id):
 	return "item_item_s_" + str(game_id)
 
 def log_dir(log_type, game_id):
-	return config.log_base_dir + log_type +"\\s_" + str(game_id) + "\\" + log_type +"_2"
+	return config.log_base_dir + "\\"  + log_type +"\\s_" + str(game_id) + "\\" + log_type +"_2"

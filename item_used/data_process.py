@@ -6,6 +6,7 @@ import os
 from enum import Enum,unique
 from MysqlConnection import MysqlConnection
 import utils
+import copy
 
 @unique
 class ItemUseFormat(Enum):
@@ -32,21 +33,22 @@ def readLog(day_dir):
 	files = os.listdir(day_dir)
 	result = {}
 	for file in files:
-		print(file)
+		#print(file)
 		filename = os.path.join(day_dir,file)
 		with open(filename,'r') as f:
 			for line in f.readlines():
 				line = line.split()
 				uid = line[ItemUseFormat.UID.value]
 				item = line[ItemUseFormat.ITEM.value]
+				count = line[ItemUseFormat.COUNT.value]
 
 				if not uid in result:
 					result[uid] = {}
 				item_id = "item_" + item
 				if item_id in result[uid]:
-					result[uid][item_id] += 1
+					result[uid][item_id] += int(count)
 				else:
-					result[uid][item_id] = 1
+					result[uid][item_id] = int(count)
 	return result
 					
 	# 			sql = "select uid, " + item_id +" from " + table + " where uid = %s"
@@ -96,7 +98,8 @@ def calculateUserItemTable(years = -1, months = -1, days = -1):
 							pattern +=("%s, ")
 							values.append(v)
 						sql = "insert into " + table + " (uid, " + keys[:-2] + ") values (%s," + pattern[:-2] + ")";
-						#print(sql)
+						print(sql)
+						print(values)
 						connection.query(sql,values)
 					else:
 						sql = "update " + table + " set "
@@ -112,6 +115,6 @@ def calculateUserItemTable(years = -1, months = -1, days = -1):
 
 	
 if __name__ == "__main__":
-	print(sys.argv[1])
+	#print(sys.argv[1])
 	log_dir = utils.log_dir("item_used",sys.argv[1])
-	#calculateUserItemTable()
+	calculateUserItemTable()

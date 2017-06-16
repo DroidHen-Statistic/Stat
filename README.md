@@ -172,9 +172,43 @@ relativeLevelLeft(start,end):
 
 #### item_used
 
-item_used 主要用来进行item的相关性分析，内含两个脚本文件：
+item_used 主要用来进行item的相关性分析。
 
-1. data_process.py 主要用来处理原始log，并计算user—item table，主要函数功能如下：
+##### 相关算法
+
+相关性分析的主要算法受启发于推荐算法中的经典：协同滤波。但是我们目前的目标不需要进行用户级别的个性推荐，所以这里我只是借鉴了协同滤波中第一步算法：计算物品相似度。
+
+算法的基本思想很简单，构建用户---道具矩阵，每行为每个用户，每列为每个道具，矩阵的元素为用户使用每个道具的次数（或者购买次数、评价等能够反映用户对该物品感兴趣程度或者满意度的度量值），这样，每个物品可以表示为一个列向量，计算物品之间的相似度转化为计算向量之间的相似度。但是，为了保证准确性，我们在计算时，只拿出两个物品都使用过的用户分量。
+
+向量相似度的计算有多种方式，这里程序采用的是pearson相关性系数。
+
+向量x和向量y的pearson相关性系数定义为：
+
+$$sim(x,y) = \frac{(x-\bar x)\cdot (y - \bar y)}{\sqrt{(x-\bar x)\cdot (x-\bar x)^T}\sqrt{(y-\bar y)\cdot (y-\bar y)^T}}$$
+
+式中的$$\bar x$$和$$\bar y$$是x和y的均值向量，所以pearson相关性系数其实也就是x和y的协方差除以二者的标准差之积。
+
+其中协方差表示了二者的变化趋势的相似度，而除以标准差则是做了一个归一化。
+
+item_used下含两个脚本文件：
+
+1. data_process.py 主要用来处理原始log，并计算user—item table，log格式为
+
+   ```php
+   class ItemUsedFormat
+   {
+       // <item_used_2>uid stage_id item_id count data_version is_first
+       const UID_POS = 0;
+       const STAGE_ID_POS = 1; // 关卡外为-1
+       const ITEM_ID_POS = 2;
+       const COUNT_POS = 3;
+       const DATA_VERSION_POS = 4;
+       const FIRST_POS = 5;
+       //14 20 1002 1 1 0
+   }
+   ```
+
+   主要函数功能如下：
 
 ```python
 readLog(day_dir):
@@ -203,13 +237,28 @@ calculateUserItemTable(years = -1, months = -1, days = -1):
 ```python
 sim():
 	"""
-	计算item之间的相似度，这里采用的是余弦相似度
+	计算item之间的相似度，这里采用的是pearson相关性系数
 	"""
 ```
 
 #### item_get
 
-item_get和item_used的功能基本相同，只是读取的log不一样，这里就不多介绍了。
+item_get和item_used的功能基本相同，只是读取的log不一样， log格式：
+
+```PHP
+class ItemGetFormat
+{
+    // <item_get_2>uid stage_id item_id count data_version is_first via
+    const UID_POS = 0;
+    const STAGE_ID_POS = 1; // 关卡外为-1
+    const ITEM_ID_POS = 2;
+    const COUNT_POS = 3;
+    const DATA_VERSION_POS = 4;
+    const FIRST_POS = 5;
+    const VIA_POS = 6; // 方式
+    // 14 20 1021 1 1 0 3
+}
+```
 
 
 
@@ -221,4 +270,4 @@ python data_process.py 101250
 
 内含多个函数的脚本需要在源代码里修改最后的”main“部分，以确定执行的是哪个函数。
 
-当然也可以把每个文件当作模块import进别的脚本来调用函数
+当然也可以把每个文件当作模块import进别的脚本来调用函数。
