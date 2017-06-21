@@ -237,7 +237,7 @@ calculateUserItemTable(years = -1, months = -1, days = -1):
 ```python
 sim():
 	"""
-	计算item之间的相似度，这里采用的是pearson相关性系数
+	计算item之间的相似度，这里采用的是pearson
 	"""
 ```
 
