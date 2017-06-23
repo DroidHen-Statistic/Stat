@@ -8,7 +8,7 @@ import utils
 import copy
 
 def centralized(l):
-	"""
+	"""o
 	中心化向量
 	
 	Arguments:

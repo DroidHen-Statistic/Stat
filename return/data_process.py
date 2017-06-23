@@ -1,14 +1,16 @@
 import sys
 sys.path.append("..")
 
+import pymysql
 import config
 import utils
+import pandas as pd
 from MysqlConnection import MysqlConnection
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdate
-import pandas as pd
 from functools import reduce
 import os
+import platform
 
 def calculateTotalReturn():
 	"""
@@ -152,22 +154,25 @@ def dayReturn(days = list(range(2,31))):
 
 
 
-def dauAnddnu():
+def dauAndDnu():
 	"""
 	绘制每日活跃用户、新增用户以及两者差值（老用户）的曲线图
 	
 	"""
-	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname,cursorclass = pymysql.cursors.DictCursor)
 	sql = "select date, login_count, register_count from log_return_s_wja_1_percent where channel_id = %s"
 	result = connection.query(sql,-2)
-	result = list(zip(*result))
-	dates = [str(x) for x in result[0]]
+	#result = list(zip(*result))
+	dates = [str(x['date']) for x in result]
+	#dates = [str(x) for x in result[0]]
 	plt.gca().xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d'))#设置时间标签显示格式
 	plt.gca().xaxis.set_major_locator(mdate.AutoDateLocator())
 	plt.xticks(pd.date_range(dates[0],dates[-1],freq='5d'))#时间间隔
 	plt.xticks(rotation = 90)
-	dau = result[1]
-	dnu = result[2]
+	# dau = result[1]
+	# dnu = result[2]
+	dau = [x['login_count'] for x in result]
+	dnu = [x['register_count'] for x in result]
 	old_user = []
 	for i in range(len(dau)):
 		old_user.append(dau[i] - dnu[i])
@@ -305,10 +310,12 @@ def all_dates():
 
 
 if __name__ == '__main__':
-	
+	if platform.system() == "Linux":
+		import matplotlib
+		matplotlib.use('agg')
 	dates = all_dates()
 
-	dnuOfChannelId()
+	dauAndDnu()
 
 	# raw_connection.close()
 	# total_connection.close()
