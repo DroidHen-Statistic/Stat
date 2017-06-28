@@ -69,20 +69,23 @@ def sim_person(i,j):
 
 
 
-def sim():
+def sim(game_id):
 	"""
 	计算item之间的相似度，这里采用的是pearson相关性系数
 	
+	Arguments:
+		game_id {int} -- game_id
 	"""
-	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
 	item_user_table = utils.item_user_table(game_id)
 	item_item_table = utils.item_item_table(game_id)
-	sql = "select column_name from Information_schema.columns where table_Name = %s"
-	columns = connection.query(sql,item_user_table)
-	columns = list(zip(*columns))[0][1:]
+	# sql = "select column_name from Information_schema.columns where table_Name = %s"
+	# columns = connection.query(sql,item_user_table)
+	# columns = list(zip(*columns))[0][1:]
 	sql = "select * from " + item_user_table
 	result = connection.query(sql)
-	R_u = np.array([x[1:] for x in result])
+	columns = list(result[0].keys())[1:]
+	R_u = np.array([list(x.values())[1:] for x in result])
 	#R_u = [x - x.mean() for x in R_u]
 	#R_u = np.array(list(zip(*R_u_centralized)))
 	
@@ -119,5 +122,5 @@ def sim():
 
 if __name__ == '__main__':
 	game_id = sys.argv[1]
-	sim()
+	sim(game_id)
 

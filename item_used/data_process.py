@@ -17,6 +17,14 @@ class ItemUseFormat(Enum):
 	DATA = 4
 	FIRST = 5
 
+@unique
+class ArgFormat(Enum):
+	DATE_START = 1
+	DATE_END = 2
+	GAME_ID = 3
+
+
+
 #dir_list = [x for x in os.listdir(.)]F
 #
 
@@ -61,60 +69,99 @@ def readLog(day_dir):
 	# 				connection.query(sql,uid)
 	# connection.close()
 
-def calculateUserItemTable(years = -1, months = -1, days = -1):
+def updateUserItemTable(date_start, date_end, game_id):
 	"""
 	计算user_item表，元素为每个user使用各个item的次数
 	
-	Keyword Arguments:
-		years {number} -- log日期——年，-1为全部 (default: {-1})
-		months {number} -- log日期——月，-1为全部 (default: {-1})
-		days {number} -- log日期——日，-1为全部 (default: {-1})
+	Arguments:
+		date_start {int} -- 统计起始日期
+		date_end {int} -- 统计终止日期
+		game_id {int} -- 游戏id
 	"""
-	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassward,config.dbname)
-	if years == -1:
-		years = os.listdir(log_dir)
-	for year in years:
-		year_dir = os.path.join(log_dir,year)
-		if months == -1:
-			months = os.listdir(year_dir)
-		for month in months:
-			month_dir = os.path.join(year_dir, month)
-			if days == -1:
-				days = os.listdir(month_dir)
-			for day in days:
-				print("---------------" + day + "----------------")
-				day_dir = os.path.join(month_dir,day)
-				table = utils.item_user_table(101250)
-				user_dict = readLog(day_dir)
-				for uid in user_dict:
-					sql = "select uid from " + table + " where uid = %s"
-					result = connection.query(sql,uid)
-					if len(result) == 0:
-						keys = ""
-						pattern = ""
-						values = [int(uid)]
-						for k,v in user_dict[uid].items():
-							keys += (k + ', ')
-							pattern +=("%s, ")
-							values.append(v)
-						sql = "insert into " + table + " (uid, " + keys[:-2] + ") values (%s," + pattern[:-2] + ")";
-						print(sql)
-						print(values)
-						connection.query(sql,values)
-					else:
-						sql = "update " + table + " set "
-						values = []
-						for k,v in user_dict[uid].items():
-							sql += (k + "= " + k + " + %s,")
-							values.append(v)
-						values.append(int(uid))
-						sql = sql[0:-1] + " where uid = %s"
-						#print(sql)
-						connection.query(sql,values)
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+	dates = utils.get_date_list(date_start, date_end)
+	log_type_path = utils.log_type_path("item_used",game_id)
+	for date in dates:
+		year,month,day = utils.split_date(date)
+		log_path = utils.get_path(log_type_path,year,month,day)
+		print("---------------" + day + "----------------")
+		table = utils.item_user_table(game_id)
+		user_dict = readLog(log_path)
+		print("read_log finished")
+		for uid in user_dict:
+			sql = "select uid from " + table + " where uid = %s"
+			result = connection.query(sql,uid)
+			if len(result) == 0:
+				keys = ""
+				pattern = ""
+				values = [int(uid)]
+				for k,v in user_dict[uid].items():
+					keys += (k + ', ')
+					pattern +=("%s, ")
+					values.append(v)
+				sql = "insert into " + table + " (uid, " + keys[:-2] + ") values (%s," + pattern[:-2] + ")"
+				#print(sql)
+				connection.query(sql,values)
+			else:
+				sql = "update " + table + " set "
+				values = []
+				for k,v in user_dict[uid].items():
+					sql += (k + "= " + k + " + %s,")
+					values.append(v)
+				values.append(int(uid))
+				sql = sql[0:-1] + " where uid = %s"
+				#print(sql)
+				connection.query(sql,values)
+
+
+	# if years == -1:
+	# 	years = os.listdir(log_dir)
+	# for year in years:
+	# 	year_dir = os.path.join(log_dir,year)
+	# 	if months == -1:
+	# 		months = os.listdir(year_dir)
+	# 	for month in months:
+	# 		month_dir = os.path.join(year_dir, month)
+	# 		if days == -1:
+	# 			days = os.listdir(month_dir)
+	# 		for day in days:
+	# 			print("---------------" + day + "----------------")
+	# 			day_dir = os.path.join(month_dir,day)
+	# 			table = utils.item_user_table(101250)
+	# 			user_dict = readLog(day_dir)
+	# 			for uid in user_dict:
+	# 				sql = "select uid from " + table + " where uid = %s"
+	# 				result = connection.query(sql,uid)
+	# 				if len(result) == 0:
+	# 					keys = ""
+	# 					pattern = ""
+	# 					values = [int(uid)]
+	# 					for k,v in user_dict[uid].items():
+	# 						keys += (k + ', ')
+	# 						pattern +=("%s, ")
+	# 						values.append(v)
+	# 					sql = "insert into " + table + " (uid, " + keys[:-2] + ") values (%s," + pattern[:-2] + ")"
+	# 					print(sql)
+	# 					print(values)
+	# 					connection.query(sql,values)
+	# 				else:
+	# 					sql = "update " + table + " set "
+	# 					values = []
+	# 					for k,v in user_dict[uid].items():
+	# 						sql += (k + "= " + k + " + %s,")
+	# 						values.append(v)
+	# 					values.append(int(uid))
+	# 					sql = sql[0:-1] + " where uid = %s"
+	# 					#print(sql)
+	# 					connection.query(sql,values)
 	connection.close()
 
 	
 if __name__ == "__main__":
 	#print(sys.argv[1])
-	log_dir = utils.log_dir("item_used",sys.argv[1])
-	calculateUserItemTable()
+	#log_dir = utils.log_dir("item_used",sys.argv[1])
+	date_start = sys.argv[ArgFormat.DATE_START.value]
+	date_end = sys.argv[ArgFormat.DATE_END.value]
+	game_id = sys.argv[ArgFormat.GAME_ID.value]
+
+	updateUserItemTable(date_start,date_end,game_id)

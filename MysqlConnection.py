@@ -19,4 +19,3 @@ class MysqlConnection(object):
                 result.append(row)
                 #print('%s\t%s\t%s' %row
         return result
-
