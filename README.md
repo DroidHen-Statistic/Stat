@@ -109,24 +109,24 @@ dnuOfChannelID_Percent(channels = [-1]):
 2. data_fit.py 主要用来日留存用户的拟合建模，只有一个函数：
 
 ```python
-fitDateReturn(game_id, channels = [-2]):
+fitDateReturn(game_id, locales = [-2], channels = [-2]):
 	"""
 	拟合每天新用户的30日留存曲线
 
 	采用scipy 的 curve_fit，原理是最小二乘
 
 	利用10折交叉验证，选取了error最小的一次作为最终模型
+
+	最后的结果保存到文件中
 	
 	Arguments:
 		game_id {int} -- 游戏id
 	
 	Keyword Arguments:
 		channels {list} -- 要拟合的渠道信息，-2为总和 (default: {[-2]})
-	
-	Returns:
-		best_popt {list} -- 拟合得到的参数值
-		best_pcov {list} -- 系数的协方差值，后续暂时没有用到
+		locales {list} -- 要拟合的渠道信息，-2为总和 (default: {[-2]})
 	"""
+
 ```
 
 curve_fit函数是scipy中的一个模型拟合函数，采用的是最小二乘的方法，函数主要参数包括要拟合的函数模型、自变量值、对应的因变量值。

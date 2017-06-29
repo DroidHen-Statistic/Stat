@@ -96,6 +96,50 @@ def calculateChannelTotalReturn(date_start, date_end):
 				connection.query(sql,values)
 	connection.close()
 
+def calculateLocaleTotalReturn(date_start, date_end):
+	"""
+	统计不同locale的留存数据，并以百分比的形式保存在新表中
+	
+	Arguments:
+		date_start {int} -- 要统计的开始日期
+		date_end {int} -- 要统计的结束日期
+	"""
+	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+	sql = "select locale from log_return_s_wja_1"
+	result = connection.query(sql)
+	dates = utils.get_date_list(date_start,date_end)
+	locales = set([x['locale'] for x in result])
+
+	for date in dates:
+		for locale in locales:
+			sql = "select * from log_return_s_wja_1 where date = %s and locale = %s"
+			result = connection.query(sql,[date,locale])
+			if(len(result)!=0):
+				temp = utils.union_dict(*result)
+				# temp = list(zip(*result))
+				temp['date'] = date
+				temp['locale'] = locale
+				temp['channel_id'] = -2
+				# temp = list(map(sum,temp))
+				values = [date,temp['login_count'],temp['register_count'],temp['locale'],temp['channel_id']]
+				if temp['register_count'] != 0:
+					for i in range(2,31):
+						temp[str(i) +'day'] = temp[str(i) +'day'] / temp['register_count'] * 100
+						values.append(temp[str(i) + 'day'])
+				else:
+					values += [0,] * 29
+				values.append(temp['login_count_pay'])
+				print(date,"-----",locale)
+				sql = "delete from log_return_s_wja_1_percent where date = %s and locale = %s"
+				connection.query(sql,(date,locale))
+				sql = "insert into log_return_s_wja_1_percent (date, login_count,register_count,locale, channel_id"
+				for i in range(2,31):
+					sql += ", " + str(i) + "day"
+				sql +=  ", login_count_pay) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+				# print(sql)
+				# print(values)
+				connection.query(sql,values)
+	connection.close()
 
 def dateReturn(date_start, date_end, channels = [-2]):
 	"""
@@ -347,7 +391,7 @@ if __name__ == '__main__':
 		matplotlib.use('agg')
 	# dates = all_dates()
 
-	calculateChannelTotalReturn(20161216,20170423)
-
+	# calculateChannelTotalReturn(20161216,20170423)
+	calculateLocaleTotalReturn(20161216,20170423)
 	# raw_connection.close()
 	# total_connection.close()
