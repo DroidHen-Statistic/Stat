@@ -42,30 +42,34 @@ return文件夹下两个脚本：
 1. data_process.py 主要用于数据的预处理和可视化，内有多个相对来说比较独立的函数，具体函数功能如下：
 
 ```python
-all_dates():
-	"""
-	获取有记录的全部日期的列表
-	
-	Returns:
-		list -- 全部的日期
-	"""
-calculateTotalReturn():
+calculateTotalReturn(date_start, date_end):
 	"""
 	汇总每天总的留存数据，并以百分比的形式保存在新表中
+	
+	Arguments:
+		date_start {int} -- 要统计的开始日期
+		date_end {int} -- 要统计的结束日期
 	"""
-calculateChannelTotalReturn():
+calculateChannelTotalReturn(date_start, date_end):
 	"""
 	统计不同channel_id的留存数据，并以百分比的形式保存在新表中
+	
+	Arguments:
+		date_start {int} -- 要统计的开始日期
+		date_end {int} -- 要统计的结束日期
 	"""
-dateReturn(dates,channels = [-2]):
+dateReturn(date_start, date_end, channels = [-2]):
 	"""
 	某天注册的用户留存情况
 	
 	获取某一天注册的用户留存数据，并以天数为横坐标，留存率为纵坐标，每天做出一张图
 	
 	Arguments:
-		dates {list} -- 要统计的日期，以列表形式给出
-		channels {list} -- 要统计的channel_id,以列表形式给出，-2 为统计总和，默认为-2
+		date_start {int} -- 要统计的开始日期
+		date_end {int} -- 要统计的结束日期
+	
+	Keyword Arguments:
+		channels {list} -- 要统计的channel_id,以列表形式给出，-2 为统计总和 (default: {[-2]})
 	"""
 dayReturn(days):
 	"""
@@ -105,24 +109,31 @@ dnuOfChannelID_Percent(channels = [-1]):
 2. data_fit.py 主要用来日留存用户的拟合建模，只有一个函数：
 
 ```python
-fitDateReturn(dates,channels = [-2]):
+fitDateReturn(game_id, locales = [-2], channels = [-2]):
 	"""
 	拟合每天新用户的30日留存曲线
 
 	采用scipy 的 curve_fit，原理是最小二乘
 
 	利用10折交叉验证，选取了error最小的一次作为最终模型
+
+	最后的结果保存到文件中
 	
 	Arguments:
-		dates {list} -- 数据样本的日期
+		game_id {int} -- 游戏id
 	
 	Keyword Arguments:
-		channels {list} -- 要拟合的channel_id列表，-2为所有channel总和 (default: {[-2]})
-	
-	Returns:
-		list -- 模型的拟合参数
+		channels {list} -- 要拟合的渠道信息，-2为总和 (default: {[-2]})
+		locales {list} -- 要拟合的渠道信息，-2为总和 (default: {[-2]})
 	"""
+
 ```
+
+curve_fit函数是scipy中的一个模型拟合函数，采用的是最小二乘的方法，函数主要参数包括要拟合的函数模型、自变量值、对应的因变量值。
+
+关于交叉验证，其作用是进行模型选择、防止数据的过拟合等，主要的形式是k-折交叉验证，而其中10-折交叉验证又是最常用的。10-折交叉验证是将数据集分为10份，每次训练用其中的9份作为训练集，剩下的一份作为验证集，如此重复10次，将10次得到的模型的性能指标做一个平均，来作为最终的模型评价。这样做的好处在于可以一定程度上表征出模型是否有过拟合现象的出现。
+
+交叉验证的主要功能是进行模型选择，即存在多个候选模型的情况下，可以利用交叉验证来选取评价指标最好的那一个作为最后的模型。但是，这里我们采用的模型实际只有一个指数模型，所以，交叉验证的意义可能不在模型选择上。我的想法是，利用交叉验证，来一定程度上去除一些异常数据，使得模型能够更准确一些，同时提供一个模型的评价指标。
 
 #### level_left
 
@@ -225,19 +236,22 @@ calculateUserItemTable(years = -1, months = -1, days = -1):
 	"""
 	计算user_item表，元素为每个user使用各个item的次数
 	
-	Keyword Arguments:
-		years {number} -- log日期——年，-1为全部 (default: {-1})
-		months {number} -- log日期——月，-1为全部 (default: {-1})
-		days {number} -- log日期——日，-1为全部 (default: {-1})
+	Arguments:
+		date_start {int} -- 统计起始日期
+		date_end {int} -- 统计终止日期
+		game_id {int} -- 游戏id
 	"""
 ```
 
 2. calculate_sim.py 用来计算item之间的相关度，主要函数只有一个：
 
 ```python
-sim():
+sim(game_id):
 	"""
 	计算item之间的相似度，这里采用的是pearson相关性系数
+	
+	Arguments:
+		game_id {int} -- game_id
 	"""
 ```
 
@@ -261,13 +275,3 @@ class ItemGetFormat
 ```
 
 
-
-以上的脚本文件都可以直接运行，其中item_get和item_use下的脚本需要加一个game_id的参数：
-
-```shell
-python data_process.py 101250
-```
-
-内含多个函数的脚本需要在源代码里修改最后的”main“部分，以确定执行的是哪个函数。
-
-当然也可以把每个文件当作模块import进别的脚本来调用函数。
