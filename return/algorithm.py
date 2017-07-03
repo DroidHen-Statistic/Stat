@@ -104,7 +104,7 @@ def fitDateReturn(game_id, locales = [-2], channels = [-2]):
 			kf = KFold(n_splits=10)
 			for train, test in kf.split(y):		#这里train 和 test分别保存了训练集和验证集在数据集中的下标，所以可以直接里利用该下标来取出对应的数据
 				x_train, x_test, y_train, y_test = x[train], x[test], y[train], y[test]
-				popt, pcov = curve_fit(func, x_train.ravel(), y_train.ravel())	#ravel()函数将原本的二维数据展开为一维
+				popt, pcov = curve_fit(func, x_train.ravel(), y_train.ravel(), bounds = ((0,0,0),(np.inf,1,np.inf)))	#ravel()函数将原本的二维数据展开为一维
 				err_sum = 0
 				y_hat = np.array([func(day,popt[0],popt[1],popt[2]) for day in days])
 				# y_hat = np.array([func(day,popt[0],popt[1]) for day in days])
