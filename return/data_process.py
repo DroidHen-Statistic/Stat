@@ -12,7 +12,7 @@ import matplotlib.dates as mdate
 from functools import reduce
 import platform
 
-def calculateTotalReturn(date_start, date_end):
+def calculateTotalReturn(date_start, date_end, game_id):
 	"""
 	汇总每天总的留存数据，并以百分比的形式保存在新表中
 	
@@ -21,127 +21,183 @@ def calculateTotalReturn(date_start, date_end):
 		date_end {int} -- 要统计的结束日期
 	"""
 
-	raw_connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.raw_dbname)
-	total_connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+	# raw_connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.raw_dbname)
+	# total_connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
 
-	dates = utils.get_date_list(date_start,date_end)
-	for date in dates:
-		sql = "select * from log_return_s_wja_1 where date = %s"
-		result = raw_connection.query(sql,date)
-		temp = utils.union_dict(*result)
-		# temp = list(zip(*result))
-		temp['date'] = date
-		temp['channel_id'] = -2
-		temp['locale'] = -2
-		# temp = list(map(sum,temp))
-		values = [date,temp['login_count'],temp['register_count'],temp['locale'],temp['channel_id']]
-		if temp['register_count'] != 0:
-			for i in range(2,31):
-				temp[str(i) +'day'] = temp[str(i) +'day'] / temp['register_count'] * 100
-				values.append(temp[str(i) + 'day'])
-		values.append(temp['login_count_pay'])
-		sql = "delete from log_return_s_wja_1_percent where date = %s"
-		total_connection.query(sql,date)
-		sql = "insert into log_return_s_wja_1_percent (date, login_count,register_count,locale, channel_id"
-		for i in range(2,31):
-			sql += ", " + str(i) + "day"
-		sql +=  ", login_count_pay) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-		total_connection.query(sql,values)
+	# dates = utils.get_date_list(date_start,date_end)
+	# for date in dates:
+	# 	sql = "select * from log_return_s_wja_1 where date = %s"
+	# 	result = raw_connection.query(sql,date)
+	# 	temp = utils.union_dict(*result)
+	# 	# temp = list(zip(*result))
+	# 	temp['date'] = date
+	# 	temp['channel_id'] = -2
+	# 	temp['locale'] = -2
+	# 	# temp = list(map(sum,temp))
+	# 	values = [date,temp['login_count'],temp['register_count'],temp['locale'],temp['channel_id']]
+	# 	if temp['register_count'] != 0:
+	# 		for i in range(2,31):
+	# 			temp[str(i) +'day'] = temp[str(i) +'day'] / temp['register_count'] * 100
+	# 			values.append(temp[str(i) + 'day'])
+	# 	values.append(temp['login_count_pay'])
+	# 	sql = "delete from log_return_s_wja_1_percent where date = %s"
+	# 	total_connection.query(sql,date)
+	# 	sql = "insert into log_return_s_wja_1_percent (date, login_count,register_count,locale, channel_id"
+	# 	for i in range(2,31):
+	# 		sql += ", " + str(i) + "day"
+	# 	sql +=  ", login_count_pay) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+	# 	total_connection.query(sql,values)
 
-	raw_connection.close()
-	total_connection.close()
+	# raw_connection.close()
+	# total_connection.close()
 
-def calculateChannelTotalReturn(date_start, date_end):
-	"""
-	统计不同channel_id的留存数据，并以百分比的形式保存在新表中
+
+	conn = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+	days = ""
+	for i in range(2,31):
+	    days += "sum(" + str(i) + "day)," 
+	days = days[:-1]
+
+	#总留存
+	sql = "select date,sum(login_count),sum(register_count)," + days + " from log_return_s_wja_1 where date >= %s and date <= %s group by date "
+	result = conn.query(sql,[date_start, date_end])
 	
-	Arguments:
-		date_start {int} -- 要统计的开始日期
-		date_end {int} -- 要统计的结束日期
-	"""
-	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
-	sql = "select channel_id from log_return_s_wja_1"
-	result = connection.query(sql)
-	dates = utils.get_date_list(date_start,date_end)
-	channels = set([x['channel_id'] for x in result])
+	for i in range(len(result)):
+		if result[i]['sum(register_count)'] != 0:
+			for j in range(2,31):
+				result[i]["sum(" + str(j) + "day)"] = result[i]["sum(" + str(j) + "day)"] / result[i]['sum(register_count)'] * 100
+		values = list(result[i].values())
+		# values.insert(3,-2)
+		# values.insert(4,-2)
+		temp_log_path = utils.get_log_tmp_path("return", str(game_id), str(result[i]['date']))
+		with open(os.path.join(temp_log_path,"channel_-2_locale_-2"),'w') as f:
+			for x in values[-29:]:
+				f.write(str(x) + " ")
+			f.write("\n")
 
-	for date in dates:
-		for channel in channels:
-			sql = "select * from log_return_s_wja_1 where date = %s and channel_id = %s"
-			result = connection.query(sql,[date,channel])
-			if(len(result)!=0):
-				temp = utils.union_dict(*result)
-				# temp = list(zip(*result))
-				temp['date'] = date
-				temp['locale'] = -2
-				temp['channel_id'] = channel
-				# temp = list(map(sum,temp))
-				values = [date,temp['login_count'],temp['register_count'],temp['locale'],temp['channel_id']]
-				if temp['register_count'] != 0:
-					for i in range(2,31):
-						temp[str(i) +'day'] = temp[str(i) +'day'] / temp['register_count'] * 100
-						values.append(temp[str(i) + 'day'])
-				else:
-					values += [0,] * 29
-				values.append(temp['login_count_pay'])
-				print(date,"-----",channel)
-				sql = "delete from log_return_s_wja_1_percent where date = %s and channel_id = %s"
-				connection.query(sql,(date,channel))
-				sql = "insert into log_return_s_wja_1_percent (date, login_count,register_count,locale, channel_id"
-				for i in range(2,31):
-					sql += ", " + str(i) + "day"
-				sql +=  ", login_count_pay) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-				# print(sql)
-				# print(values)
-				connection.query(sql,values)
-	connection.close()
-
-def calculateLocaleTotalReturn(date_start, date_end):
-	"""
-	统计不同locale的留存数据，并以百分比的形式保存在新表中
+	# 分渠道留存
+	sql = "select date,sum(login_count),sum(register_count),channel_id, " + days + " from log_return_s_wja_1 where date >= %s and date <= %s group by date, channel_id"
+	result = conn.query(sql,[date_start, date_end])
 	
-	Arguments:
-		date_start {int} -- 要统计的开始日期
-		date_end {int} -- 要统计的结束日期
-	"""
-	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
-	sql = "select locale from log_return_s_wja_1"
-	result = connection.query(sql)
-	dates = utils.get_date_list(date_start,date_end)
-	locales = set([x['locale'] for x in result])
+	for i in range(len(result)):
+		if result[i]['sum(register_count)'] != 0:
+			for j in range(2,31):
+				result[i]["sum(" + str(j) + "day)"] = result[i]["sum(" + str(j) + "day)"] / result[i]['sum(register_count)'] * 100
+		values = list(result[i].values())
+		# values.insert(3,-2)
+		temp_log_path = utils.get_log_tmp_path("return", str(game_id), str(result[i]['date']))
+		with open(os.path.join(temp_log_path,"channel_" + str(result[i]['channel_id']) + "_locale_-2"),'w') as f:
+			for x in values[-29:]:
+				f.write(str(x) + " ")
+			f.write("\n")
 
-	for date in dates:
-		for locale in locales:
-			sql = "select * from log_return_s_wja_1 where date = %s and locale = %s"
-			result = connection.query(sql,[date,locale])
-			if(len(result)!=0):
-				temp = utils.union_dict(*result)
-				# temp = list(zip(*result))
-				temp['date'] = date
-				temp['locale'] = locale
-				temp['channel_id'] = -2
-				# temp = list(map(sum,temp))
-				values = [date,temp['login_count'],temp['register_count'],temp['locale'],temp['channel_id']]
-				if temp['register_count'] != 0:
-					for i in range(2,31):
-						temp[str(i) +'day'] = temp[str(i) +'day'] / temp['register_count'] * 100
-						values.append(temp[str(i) + 'day'])
-				else:
-					values += [0,] * 29
-				values.append(temp['login_count_pay'])
-				print(date,"-----",locale)
-				sql = "delete from log_return_s_wja_1_percent where date = %s and locale = %s"
-				connection.query(sql,(date,locale))
-				sql = "insert into log_return_s_wja_1_percent (date, login_count,register_count,locale, channel_id"
-				for i in range(2,31):
-					sql += ", " + str(i) + "day"
-				sql +=  ", login_count_pay) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-				# print(sql)
-				# print(values)
-				connection.query(sql,values)
-	connection.close()
+	# 分locale留存		
+	sql = "select date,sum(login_count),sum(register_count),locale, " + days + " from log_return_s_wja_1 where date >= %s and date <= %s group by date, locale"
+	result = conn.query(sql,[date_start, date_end])
+	for i in range(len(result)):
+		if result[i]['sum(register_count)'] != 0:
+			for j in range(2,31):
+				result[i]["sum(" + str(j) + "day)"] = result[i]["sum(" + str(j) + "day)"] / result[i]['sum(register_count)'] * 100
+		values = list(result[i].values())
+		# values.insert(4,-2)
+		temp_log_path = utils.get_log_tmp_path("return", str(game_id), str(result[i]['date']))
+		with open(os.path.join(temp_log_path,"channel_-2_locale_" + str(result[i]['locale'])),'w') as f:
+			for x in values[-29:]:
+				f.write(str(x) + " ")
+			f.write("\n")
 
-def dateReturn(date_start, date_end, channels = [-2]):
+
+# def calculateChannelTotalReturn(date_start, date_end):
+# 	"""
+# 	统计不同channel_id的留存数据，并以百分比的形式保存在新表中
+	
+# 	Arguments:
+# 		date_start {int} -- 要统计的开始日期
+# 		date_end {int} -- 要统计的结束日期
+# 	"""
+# 	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+# 	sql = "select channel_id from log_return_s_wja_1"
+# 	result = connection.query(sql)
+# 	dates = utils.get_date_list(date_start,date_end)
+# 	channels = set([x['channel_id'] for x in result])
+
+# 	for date in dates:
+# 		for channel in channels:
+# 			sql = "select * from log_return_s_wja_1 where date = %s and channel_id = %s"
+# 			result = connection.query(sql,[date,channel])
+# 			if(len(result)!=0):
+# 				temp = utils.union_dict(*result)
+# 				# temp = list(zip(*result))
+# 				temp['date'] = date
+# 				temp['locale'] = -2
+# 				temp['channel_id'] = channel
+# 				# temp = list(map(sum,temp))
+# 				values = [date,temp['login_count'],temp['register_count'],temp['locale'],temp['channel_id']]
+# 				if temp['register_count'] != 0:
+# 					for i in range(2,31):
+# 						temp[str(i) +'day'] = temp[str(i) +'day'] / temp['register_count'] * 100
+# 						values.append(temp[str(i) + 'day'])
+# 				else:
+# 					values += [0,] * 29
+# 				values.append(temp['login_count_pay'])
+# 				print(date,"-----",channel)
+# 				sql = "delete from log_return_s_wja_1_percent where date = %s and channel_id = %s"
+# 				connection.query(sql,(date,channel))
+# 				sql = "insert into log_return_s_wja_1_percent (date, login_count,register_count,locale, channel_id"
+# 				for i in range(2,31):
+# 					sql += ", " + str(i) + "day"
+# 				sql +=  ", login_count_pay) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+# 				# print(sql)
+# 				# print(values)
+# 				connection.query(sql,values)
+# 	connection.close()
+
+# def calculateLocaleTotalReturn(date_start, date_end):
+# 	"""
+# 	统计不同locale的留存数据，并以百分比的形式保存在新表中
+	
+# 	Arguments:
+# 		date_start {int} -- 要统计的开始日期
+# 		date_end {int} -- 要统计的结束日期
+# 	"""
+# 	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+# 	sql = "select locale from log_return_s_wja_1"
+# 	result = connection.query(sql)
+# 	dates = utils.get_date_list(date_start,date_end)
+# 	locales = set([x['locale'] for x in result])
+
+# 	for date in dates:
+# 		for locale in locales:
+# 			sql = "select * from log_return_s_wja_1 where date = %s and locale = %s"
+# 			result = connection.query(sql,[date,locale])
+# 			if(len(result)!=0):
+# 				temp = utils.union_dict(*result)
+# 				# temp = list(zip(*result))
+# 				temp['date'] = date
+# 				temp['locale'] = locale
+# 				temp['channel_id'] = -2
+# 				# temp = list(map(sum,temp))
+# 				values = [date,temp['login_count'],temp['register_count'],temp['locale'],temp['channel_id']]
+# 				if temp['register_count'] != 0:
+# 					for i in range(2,31):
+# 						temp[str(i) +'day'] = temp[str(i) +'day'] / temp['register_count'] * 100
+# 						values.append(temp[str(i) + 'day'])
+# 				else:
+# 					values += [0,] * 29
+# 				values.append(temp['login_count_pay'])
+# 				print(date,"-----",locale)
+# 				sql = "delete from log_return_s_wja_1_percent where date = %s and locale = %s"
+# 				connection.query(sql,(date,locale))
+# 				sql = "insert into log_return_s_wja_1_percent (date, login_count,register_count,locale, channel_id"
+# 				for i in range(2,31):
+# 					sql += ", " + str(i) + "day"
+# 				sql +=  ", login_count_pay) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+# 				# print(sql)
+# 				# print(values)
+# 				connection.query(sql,values)
+# 	connection.close()
+
+def dateReturn(date_start, date_end, game_id, channels = [-2], locales = [-2]):
 	"""
 	某天注册的用户留存情况
 	
@@ -155,30 +211,53 @@ def dateReturn(date_start, date_end, channels = [-2]):
 	Keyword Arguments:
 		channels {list} -- 要统计的channel_id,以列表形式给出，-2 为统计总和 (default: {[-2]})
 	"""
-	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
-	dates = utils.get_date_list(date_start,date_end)
-	sql = "select * from log_return_s_wja_1_percent where date = %s and channel_id = %s"
-	for channel in channels:
-		path = utils.get_figure_path("return_date_test", "channel_" + str(channel))
-		print(path)
-		for date in dates:
-			print("------------date:",date," channel:",channel,"--------------")
-			result = connection.query(sql,[date,channel])
-			if(len(result) != 0):
-				return_percent = []
-				for i in range(2,31):
-					return_percent.append(result[0][str(i) + 'day'])
-				# number = result[0][5:34]
-				days = range(2,31)
-				plt.plot(days,return_percent,'r--')
-				plt.gca().set_xlabel('days')
-				plt.gca().set_ylabel('return')
-				plt.grid(True)
-				#plt.savefig(os.path.join(path,str(date)))
-				plt.show()
-				plt.cla()
+	# connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+	# dates = utils.get_date_list(date_start,date_end)
+	# sql = "select * from log_return_s_wja_1_percent where date = %s and channel_id = %s"
+	# for channel in channels:
+	# 	path = utils.get_figure_path("return_date_test", "channel_" + str(channel))
+	# 	print(path)
+	# 	for date in dates:
+	# 		print("------------date:",date," channel:",channel,"--------------")
+	# 		result = connection.query(sql,[date,channel])
+	# 		if(len(result) != 0):
+	# 			return_percent = []
+	# 			for i in range(2,31):
+	# 				return_percent.append(result[0][str(i) + 'day'])
+	# 			# number = result[0][5:34]
+	# 			days = range(2,31)
+	# 			plt.plot(days,return_percent,'r--')
+	# 			plt.gca().set_xlabel('days')
+	# 			plt.gca().set_ylabel('return')
+	# 			plt.grid(True)
+	# 			#plt.savefig(os.path.join(path,str(date)))
+	# 			plt.show()
+	# 			plt.cla()
 
-	connection.close()
+	# connection.close()
+
+
+	days = range(2,31)
+	dates = utils.get_date_list(date_start,date_end)
+	for channel in channels:
+		for locale in locales:
+			for date in dates:
+				figure_path = utils.get_figure_path("return_date_test", "channel_" + str(channel))
+				log_tmp_path = utils.get_log_tmp_path("return",game_id,date)
+				log_file = os.path.join(log_tmp_path,"channel_" + str(channel) + "_locale_" + str(locale))
+				print("------------date:",date," channel:",channel,"--------------")
+				with open(log_file,'r') as f:
+					return_percent = [float(x) for x in f.read().strip().split(" ")]
+					plt.plot(days,return_percent,'r--')
+					plt.gca().set_xlabel('days')
+					plt.gca().set_ylabel('return')
+					plt.grid(True)
+					#plt.savefig(os.path.join(figure_path,str(date)))
+					plt.show()
+					plt.cla()
+
+
+
 
 def dayReturn(days = list(range(2,31))):
 	"""	
@@ -392,6 +471,10 @@ if __name__ == '__main__':
 	# dates = all_dates()
 
 	# calculateChannelTotalReturn(20161216,20170423)
-	calculateLocaleTotalReturn(20161216,20170423)
+	date_start = sys.argv[1]
+	date_end = sys.argv[2]
+	game_id = sys.argv[3]
+
+	dateReturn(date_start,date_end,game_id)
 	# raw_connection.close()
 	# total_connection.close()
