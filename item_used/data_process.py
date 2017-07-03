@@ -37,25 +37,25 @@ def readLog(day_dir):
 	Returns:
 		dict -- 二维dict，{uid_1:{item_id_1:使用次数,...,item_id_n:使用次数},...,uid_n:{item_id_1:使用次数,...,item_id_n:使用次数}}
 	"""
-	files = os.listdir(day_dir)
 	result = {}
-	for file in files:
+	for file in os.listdir(day_dir):
 		#print(file)
 		filename = os.path.join(day_dir,file)
-		with open(filename,'r') as f:
-			for line in f.readlines():
-				line = line.split()
-				uid = line[ItemUseFormat.UID.value]
-				item = line[ItemUseFormat.ITEM.value]
-				count = line[ItemUseFormat.COUNT.value]
+		if os.path.isfile(filename):
+			with open(filename,'r') as f:
+				for line in f.readlines():
+					line = line.split()
+					uid = line[ItemUseFormat.UID.value]
+					item = line[ItemUseFormat.ITEM.value]
+					count = line[ItemUseFormat.COUNT.value]
 
-				if not uid in result:
-					result[uid] = {}
-				item_id = "item_" + item
-				if item_id in result[uid]:
-					result[uid][item_id] += int(count)
-				else:
-					result[uid][item_id] = int(count)
+					if not uid in result:
+						result[uid] = {}
+					item_id = "item_" + item
+					if item_id in result[uid]:
+						result[uid][item_id] += int(count)
+					else:
+						result[uid][item_id] = int(count)
 	return result
 					
 	# 			sql = "select uid, " + item_id +" from " + table + " where uid = %s"

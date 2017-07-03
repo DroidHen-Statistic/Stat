@@ -8,8 +8,8 @@ def get_path(base = config.base_dir, *paths):
 	ret = base
 	for path in paths:
 		ret = os.path.join(ret,path)
-	if not os.path.exists(ret):
-		os.mkdir(ret)
+		if not os.path.exists(ret):
+			os.mkdir(ret)
 	return ret
 
 def get_figure_path(*subfolder):
@@ -25,13 +25,27 @@ def item_item_table(game_id):
 def log_table(log_type, game_id):
 	return "log_" + log_type + "_s_wja_" + gameid +"_1"
 
-def log_type_path(log_type, game_id):
+def get_log_type_path(log_type, game_id):
 	return os.path.join(config.log_base_dir,log_type,"s_"+str(game_id),log_type +"_2")
 
-def log_tmp_path(date, game_id):
-	return os.path.join(config.log_tmp_dir, game_id)
+def get_log_tmp_path(log_type, game_id, date):
+	return get_path(config.log_tmp_dir, str(game_id), log_type, str(date))
+
+def get_log_type_tmp_path(log_type, game_id):
+	return get_path(config.log_tmp_dir, str(game_id), log_type)
 
 def union_dict(*objs):
+	"""
+	合并多个字典，相同的键，值相加
+	
+	union_dict({'a':1, 'b':2, 'c':3}, {'a':2, 'b':3}) ----> {'a':3, 'b':5, 'c':3}
+	
+	Arguments:
+		*objs {dict} -- 要合并的字典
+	
+	Returns:
+		[dict] -- 合并后的字典
+	"""
 	keys = set(sum([list(obj.keys()) for obj in objs],[]))
 	total = {}  
 	for key in keys:  

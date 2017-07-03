@@ -101,13 +101,17 @@ def sim(game_id):
 			print("-------",i,j,"-------")
 			corated = []
 			for k in range(len(R_u[:,i])):
-				if(R_u[k,i] != 0 and R_u[k,j] != 0):
+				if R_u[k,i] != 0 or R_u[k,j] != 0:
 					corated.append([R_u[k,i],R_u[k,j]])
+				# if R_u[k,i] != 0 and R_u[k,j] != 0:
+				# 	corated.append([R_u[k,i],R_u[k,j]])
 			corated = np.array(corated)
 			print(len(corated))
 			if len(corated) != 0:
 				cov = np.corrcoef(corated, rowvar = False) 	#协方差矩阵
-				sim_ij = cov[0,1]/np.sqrt(cov[0,0] * cov[1,1])	#相关系数
+				print(cov)
+				# sim_ij = cov[0,1]/np.sqrt(cov[0,0] * cov[1,1])	#相关系数
+				sim_ij = cov[0,1] if cov[0,1] != np.nan else 0
 			else:
 				sim_ij = 0
 			#sim_ij = sim_cosin(R_u[i],R_u[j])
@@ -122,6 +126,6 @@ def sim(game_id):
 
 
 if __name__ == '__main__':
+	
 	game_id = sys.argv[1]
 	sim(game_id)
-

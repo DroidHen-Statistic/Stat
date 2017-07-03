@@ -11,6 +11,7 @@ import numpy as np
 from scipy import log
 from functools import reduce
 import os
+import platform
 
 from sklearn.model_selection import KFold
 
@@ -40,23 +41,47 @@ def fitDateReturn(game_id, locales = [-2], channels = [-2]):
 		channels {list} -- 要拟合的渠道信息，-2为总和 (default: {[-2]})
 		locales {list} -- 要拟合的渠道信息，-2为总和 (default: {[-2]})
 	"""
+	# connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+	# days = list(range(2,31))
+	# log_type_tmp_path = utils.get_log_type_tmp_path("return",game_id)
+	# dates = os.listdir(log_type_tmp_path)
+	# for channel in channels:
+	# 	for locale in locales:
+	# 		all_data = np.ones(29)
+	# 		sql = "select * from log_return_s_wja_1_percent where channel_id = %s and locale = %s"
+	# 		result = connection.query(sql,[channel,locale])
+	# 		dates = []
+	# 		for i in range(len(result)):
+	# 			return_percent= []
+	# 			for j in range(2,31):
+	# 				return_percent.append(result[i][str(j) + 'day'])
+	# 			if return_percent.count(0) < 5:
+	# 				all_data = np.row_stack((all_data,return_percent))
+	# 				dates.append(result[i]["date"])
+	# 			else:
+	# 				print("data dropped: %s %s %s" %(channel,locale,result[i]['date']))
+
+			
+
 	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
 	days = list(range(2,31))
+	log_type_tmp_path = utils.get_log_type_tmp_path("return",game_id)
+	date_list = os.listdir(log_type_tmp_path)
 	for channel in channels:
 		for locale in locales:
-			all_data = np.ones(29);
-			sql = "select * from log_return_s_wja_1_percent where channel_id = %s and locale = %s"
-			result = connection.query(sql,[channel,locale])
+			all_data = np.ones(29)
 			dates = []
-			for i in range(len(result)):
-				return_percent= []
-				for j in range(2,31):
-					return_percent.append(result[i][str(j) + 'day'])
-				if return_percent.count(0) < 5:
-					all_data = np.row_stack((all_data,return_percent))
-					dates.append(result[i]["date"])
-				else:
-					print("data dropped: %s %s %s" %(channel,locale,result[i]['date']))
+			for date in date_list:
+				log_tmp_path = os.path.join(log_type_tmp_path,date)
+				log_file = os.path.join(log_tmp_path, "channel_" + str(channel) + "_locale_" + str(locale))
+				with open(log_file, 'r') as f:
+					return_percent = [float(x) for x in f.read().strip().split(" ")]
+					if return_percent.count(0) < 5:
+						all_data = np.row_stack((all_data,return_percent))
+						dates.append(date)
+					else:
+						print("data dropped: %s %s %s" %(channel,locale,date))
+
 
 			path = utils.get_figure_path("return_date_fit","channel_" + str(channel) + "_locale_" + str(locale))
 
@@ -115,6 +140,10 @@ def fitDateReturn(game_id, locales = [-2], channels = [-2]):
 		
 
 if __name__ == '__main__':
+
+	if platform.system() == "Linux":
+		import matplotlib
+		matplotlib.use('agg')
 
 	DAYS = 29
 	game_id = sys.argv[1]
