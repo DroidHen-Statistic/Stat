@@ -7,10 +7,12 @@ import config
 import utils
 import pandas as pd
 from MysqlConnection import MysqlConnection
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdate
 from functools import reduce
 import platform
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdate
+
 
 def calculateTotalReturn(date_start, date_end, game_id):
 	"""
@@ -51,7 +53,6 @@ def calculateTotalReturn(date_start, date_end, game_id):
 	# raw_connection.close()
 	# total_connection.close()
 
-
 	conn = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
 	days = ""
 	for i in range(2,31):
@@ -61,7 +62,6 @@ def calculateTotalReturn(date_start, date_end, game_id):
 	#总留存
 	sql = "select date,sum(login_count),sum(register_count)," + days + " from log_return_s_wja_1 where date >= %s and date <= %s group by date "
 	result = conn.query(sql,[date_start, date_end])
-	
 	for i in range(len(result)):
 		if result[i]['sum(register_count)'] != 0:
 			for j in range(2,31):
@@ -253,7 +253,7 @@ def dateReturn(date_start, date_end, game_id, channels = [-2], locales = [-2]):
 					plt.gca().set_ylabel('return')
 					plt.grid(True)
 					#plt.savefig(os.path.join(figure_path,str(date)))
-					plt.show()
+					#plt.show()
 					plt.cla()
 
 
@@ -293,14 +293,14 @@ def dayReturn(days = list(range(2,31))):
 		plt.grid(True)
 		path = utils.get_figure_path("return_day_test")
 		plt.savefig(os.path.join(path,str(day) + "day"))
-		plt.show()
+		#plt.show()
 		plt.cla()
 
 		fig.set_size_inches(10,5)
 		plt.hist(return_percent)
 		path = utils.get_figure_path("return_day_test","hist")
 		plt.savefig(os.path.join(path,str(day) + "day"))
-		plt.show()
+		#plt.show()
 	
 	connection.close()
 
@@ -370,7 +370,7 @@ def dauAndDnu_Bar():
 	plt.legend(loc = 'upper right')
 	path = utils.get_figure_path("dau and dnu test")
 	plt.savefig(os.path.join(path,"dau and dnu bar"),dpi=100)
-	plt.show()
+	#plt.show()
 
 	connection.close()
 
@@ -441,7 +441,7 @@ def dnuOfChannelID_Percent(channels = [-1]):
 		plt.plot(dates,register_count,label = channel)
 		plt.legend(loc = 'upper right')
 		#plt.savefig(os.path.join(path,"dnu_percent_" + str(channel)),dpi=100)
-		plt.show()
+		#plt.show()
 		plt.cla()
 
 	connection.close()
@@ -465,9 +465,8 @@ def dnuOfChannelID_Percent(channels = [-1]):
 
 
 if __name__ == '__main__':
-	if platform.system() == "Linux":
-		import matplotlib
-		matplotlib.use('agg')
+#	if platform.system() == "Linux":
+#		matplotlib.use('agg')
 	# dates = all_dates()
 
 	# calculateChannelTotalReturn(20161216,20170423)
@@ -475,6 +474,6 @@ if __name__ == '__main__':
 	date_end = sys.argv[2]
 	game_id = sys.argv[3]
 
-	dateReturn(date_start,date_end,game_id)
+	calculateTotalReturn(date_start,date_end,game_id)
 	# raw_connection.close()
 	# total_connection.close()

@@ -5,7 +5,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
 import utils
 from MysqlConnection import MysqlConnection
-import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import numpy as np
 from scipy import log
@@ -144,7 +143,7 @@ if __name__ == '__main__':
 	if platform.system() == "Linux":
 		import matplotlib
 		matplotlib.use('agg')
-
+	import matplotlib.pyplot as plt
 	DAYS = 29
 	game_id = sys.argv[1]
 
