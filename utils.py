@@ -23,8 +23,8 @@ def item_user_table(game_id):
 def item_item_table(game_id):
 	return "item_item_s_" + str(game_id)
 
-def log_table(log_type, game_id):
-	return "log_" + log_type + "_s_wja_" + gameid +"_1"
+def log_table(log_type, game_id, server_id = 1):
+	return "log_" + log_type + "_s_wja_" + str(game_id) +"_" + str(server_id)
 
 def get_log_type_path(log_type, game_id):
 	return os.path.join(config.log_base_dir,"s_"+str(game_id),log_type +"_2")
