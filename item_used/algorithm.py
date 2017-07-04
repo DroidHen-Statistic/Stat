@@ -7,6 +7,7 @@ from MysqlConnection import MysqlConnection
 import numpy as np
 import utils
 import copy
+import pickle
 
 def centralized(l):
 	"""o
@@ -77,49 +78,83 @@ def sim(game_id):
 	Arguments:
 		game_id {int} -- game_id
 	"""
+
+	
 	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
 	item_user_table = utils.item_user_table(game_id)
 	item_item_table = utils.item_item_table(game_id)
 	# sql = "select column_name from Information_schema.columns where table_Name = %s"
 	# columns = connection.query(sql,item_user_table)
 	# columns = list(zip(*columns))[0][1:]
-	sql = "select * from " + item_user_table
-	result = connection.query(sql)
-	columns = list(result[0].keys())[1:]
-	R_u = np.array([list(x.values())[1:] for x in result])
-	#R_u = [x - x.mean() for x in R_u]
-	#R_u = np.array(list(zip(*R_u_centralized)))
 	
-	#print(R_i[0][:10])
-	#print(sum(R_i[0])/len(R_i[0]))
-	#R_i = list(map(centralized,R_i))
-	#print(R_i[0][:10])
-	#
-	cols = R_u.shape[1]
-	for i in range(cols):
-		for j in range(i, cols):
-			print("-------",i,j,"-------")
+
+	
+
+	
+	# 文件接口
+	log_type_tmp_path = utils.get_log_type_tmp_path("item_used", game_id)
+	total_file = utils.item_used_total_file(game_id, max(os.listdir(log_type_tmp_path)))
+	with open(total_file,'rb') as f:
+		total_data = pickle.load(f)
+
+	items = list(set(sum([list(x.keys()) for x in total_data.values()],[])))	#拿到所有的item id
+	items = sorted(items, key = lambda x: int(x[5:]))	#这里为了最后的结果矩阵是个上三角阵，所以排了一下序
+	for i in range(len(items)):
+		for j in range(i,len(items)):
+			print("------%s:%s------" %(items[i],items[j]))
 			corated = []
-			for k in range(len(R_u[:,i])):
-				if R_u[k,i] != 0 or R_u[k,j] != 0:
-					corated.append([R_u[k,i],R_u[k,j]])
-				# if R_u[k,i] != 0 and R_u[k,j] != 0:
-				# 	corated.append([R_u[k,i],R_u[k,j]])
+			for k,v in total_data.items():
+				if items[i] in v or items[j] in v:
+					corated.append([v.get(items[i],0), v.get(items[j],0)])
 			corated = np.array(corated)
 			print(len(corated))
 			if len(corated) != 0:
-				cov = np.corrcoef(corated, rowvar = False) 	#协方差矩阵
-				print(cov)
-				# sim_ij = cov[0,1]/np.sqrt(cov[0,0] * cov[1,1])	#相关系数
+				cov = np.corrcoef(corated, rowvar = False) 	#相关系数
 				sim_ij = cov[0,1] if cov[0,1] != np.nan else 0
 			else:
 				sim_ij = 0
-			#sim_ij = sim_cosin(R_u[i],R_u[j])
-			sql = "update " + item_item_table + " set " + columns[j] + " = %s where item_id = %s"
-			print(sql)
-			print(sim_ij,columns[i])
-			connection.query(sql,[float(sim_ij),columns[i][5:]])
+			sql = "update " + item_item_table + " set " + items[j] + " = %s where item_id = %s"
+			print(sim_ij)
+			connection.query(sql,[float(sim_ij),items[i][5:]])
 			#print(sim_ij)
+
+
+
+
+
+	# 数据库接口
+	# 
+	# sql = "select * from " + item_user_table
+	# result = connection.query(sql)
+	# columns = list(result[0].keys())[1:]
+	# user_item_table = np.array([list(x.values())[1:] for x in result])
+	# cols = user_item_table.shape[1]
+	# for i in range(cols):
+	# 	for j in range(i, cols):
+	# 		print("-------",i,j,"-------")
+	# 		corated = []
+	# 		for k in range(len(user_item_table[:,i])):
+	# 			if user_item_table[k,i] != 0 or user_item_table[k,j] != 0:
+	# 				corated.append([user_item_table[k,i],user_item_table[k,j]])
+	# 			# if user_item_table[k,i] != 0 and user_item_table[k,j] != 0:
+	# 			# 	corated.append([user_item_table[k,i],user_item_table[k,j]])
+	# 		corated = np.array(corated)
+	# 		print(len(corated))
+	# 		if len(corated) != 0:
+	# 			cov = np.corrcoef(corated, rowvar = False) 	#协方差矩阵
+	# 			print(cov)
+	# 			# sim_ij = cov[0,1]/np.sqrt(cov[0,0] * cov[1,1])	#相关系数
+	# 			sim_ij = cov[0,1] if cov[0,1] != np.nan else 0
+	# 		else:
+	# 			sim_ij = 0
+	# 		#sim_ij = sim_cosin(user_item_table[i],user_item_table[j])
+	# 		sql = "update " + item_item_table + " set " + columns[j] + " = %s where item_id = %s"
+	# 		print(sql)
+	# 		print(sim_ij,columns[i])
+	# 		connection.query(sql,[float(sim_ij),columns[i][5:]])
+	# 		#print(sim_ij)
+
+
 
 	connection.close()
 
