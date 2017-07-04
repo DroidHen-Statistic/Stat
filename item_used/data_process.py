@@ -5,7 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
 from enum import Enum,unique
 from MysqlConnection import MysqlConnection
-import utils
+# import utils
+from utils import *
 import pickle
 
 @unique
@@ -79,9 +80,9 @@ def updateUserItemTable(date_start, date_end, game_id):
 		game_id {int} -- 游戏id
 	"""
 	# connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
-	dates = utils.get_date_list(date_start, date_end)
-	last_day = utils.get_yesterday(date_start)
-	last_total_file = utils.item_used_total_file(game_id,last_day)
+	dates = date_util.get_date_list(date_start, date_end)
+	last_day = date_util.get_yesterday(date_start)
+	last_total_file = file_util.item_used_total_file(game_id,last_day)
 	if os.path.exists(last_total_file):
 		with open(last_total_file, 'rb') as f:
 			item_used_total = pickle.dump(f)
@@ -89,14 +90,14 @@ def updateUserItemTable(date_start, date_end, game_id):
 		item_used_total = {}
 
 	for date in dates:
-		log_path = utils.get_log_path("item_used", game_id, date)
+		log_path = file_util.get_log_path("item_used", game_id, date)
 		print("---------------",date,"----------------")
 		# table = utils.item_user_table(game_id)
 		user_dict = readLog(log_path)
-		item_used_total = utils.union_dict(item_used_total, user_dict, f = utils.union_dict, initial = {})
+		item_used_total = other_util.union_dict(item_used_total, user_dict, f = other_util.union_dict, initial = {})
 		print("read_log finished")
 
-		total_file = utils.item_used_total_file(game_id,date)
+		total_file = file_util.item_used_total_file(game_id,date)
 		with open(total_file,'wb') as f:
 			pickle.dump(item_used_total, f)
 

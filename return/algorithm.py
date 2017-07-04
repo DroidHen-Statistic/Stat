@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import config
-import utils
+from utils import *
 from MysqlConnection import MysqlConnection
 from scipy.optimize import curve_fit
 import numpy as np
@@ -64,7 +64,7 @@ def fitDateReturn(game_id, locales = [-2], channels = [-2]):
 
 	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
 	days = list(range(2,31))
-	log_type_tmp_path = utils.get_log_type_tmp_path("return",game_id)
+	log_type_tmp_path = file_util.get_log_type_tmp_path("return",game_id)
 	date_list = os.listdir(log_type_tmp_path)
 	for channel in channels:
 		for locale in locales:
@@ -82,7 +82,7 @@ def fitDateReturn(game_id, locales = [-2], channels = [-2]):
 						print("data dropped: %s %s %s" %(channel,locale,date))
 
 
-			path = utils.get_figure_path("return_date_fit","channel_" + str(channel) + "_locale_" + str(locale))
+			path = file_util.get_figure_path("return_date_fit","channel_" + str(channel) + "_locale_" + str(locale))
 
 			if(all_data.shape[0] < 11 or len(all_data.shape) == 1):
 				print("The valid data size is too small (less than 10) for channel %d locale %s" %(channel,locale))

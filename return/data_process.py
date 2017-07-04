@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pymysql
 import config
-import utils
+from utils import *
 import pandas as pd
 from MysqlConnection import MysqlConnection
 from functools import reduce
@@ -69,7 +69,7 @@ def calculateTotalReturn(date_start, date_end, game_id):
 		values = list(result[i].values())
 		# values.insert(3,-2)
 		# values.insert(4,-2)
-		temp_log_path = utils.get_log_tmp_path("return", str(game_id), str(result[i]['date']))
+		temp_log_path = file_util.get_log_tmp_path("return", str(game_id), str(result[i]['date']))
 		with open(os.path.join(temp_log_path,"channel_-2_locale_-2"),'w') as f:
 			for x in values[-29:]:
 				f.write(str(x) + " ")
@@ -85,7 +85,7 @@ def calculateTotalReturn(date_start, date_end, game_id):
 				result[i]["sum(" + str(j) + "day)"] = result[i]["sum(" + str(j) + "day)"] / result[i]['sum(register_count)'] * 100
 		values = list(result[i].values())
 		# values.insert(3,-2)
-		temp_log_path = utils.get_log_tmp_path("return", str(game_id), str(result[i]['date']))
+		temp_log_path = file_util.get_log_tmp_path("return", str(game_id), str(result[i]['date']))
 		with open(os.path.join(temp_log_path,"channel_" + str(result[i]['channel_id']) + "_locale_-2"),'w') as f:
 			for x in values[-29:]:
 				f.write(str(x) + " ")
@@ -100,7 +100,7 @@ def calculateTotalReturn(date_start, date_end, game_id):
 				result[i]["sum(" + str(j) + "day)"] = result[i]["sum(" + str(j) + "day)"] / result[i]['sum(register_count)'] * 100
 		values = list(result[i].values())
 		# values.insert(4,-2)
-		temp_log_path = utils.get_log_tmp_path("return", str(game_id), str(result[i]['date']))
+		temp_log_path = file_util.get_log_tmp_path("return", str(game_id), str(result[i]['date']))
 		with open(os.path.join(temp_log_path,"channel_-2_locale_" + str(result[i]['locale'])),'w') as f:
 			for x in values[-29:]:
 				f.write(str(x) + " ")
@@ -238,12 +238,12 @@ def dateReturn(date_start, date_end, game_id, channels = [-2], locales = [-2]):
 
 
 	days = range(2,31)
-	dates = utils.get_date_list(date_start,date_end)
+	dates = date_util.get_date_list(date_start,date_end)
 	for channel in channels:
 		for locale in locales:
 			for date in dates:
-				figure_path = utils.get_figure_path("return_date_test", "channel_" + str(channel))
-				log_tmp_path = utils.get_log_tmp_path("return",game_id,date)
+				figure_path = file_util.get_figure_path("return_date_test", "channel_" + str(channel))
+				log_tmp_path = file_util.get_log_tmp_path("return",game_id,date)
 				log_file = os.path.join(log_tmp_path,"channel_" + str(channel) + "_locale_" + str(locale))
 				print("------------date:",date," channel:",channel,"--------------")
 				with open(log_file,'r') as f:
@@ -291,14 +291,14 @@ def dayReturn(days = list(range(2,31))):
 		plt.gca().set_ylabel('return percent(%)')
 		plt.legend(loc = "upper right")
 		plt.grid(True)
-		path = utils.get_figure_path("return_day_test")
+		path = file_util.get_figure_path("return_day_test")
 		plt.savefig(os.path.join(path,str(day) + "day"))
 		#plt.show()
 		plt.cla()
 
 		fig.set_size_inches(10,5)
 		plt.hist(return_percent)
-		path = utils.get_figure_path("return_day_test","hist")
+		path = file_util.get_figure_path("return_day_test","hist")
 		plt.savefig(os.path.join(path,str(day) + "day"))
 		#plt.show()
 	
@@ -337,7 +337,7 @@ def dauAndDnu():
 	plt.gca().set_xlabel('date')
 	plt.gca().set_ylabel('user')
 	plt.legend(loc='upper right')
-	path = utils.get_figure_path("dau and dnu test")
+	path = file_util.get_figure_path("dau and dnu test")
 	#plt.savefig(os.path.join(path,"dau and dnu"),dpi=100)
 	plt.show()
 
@@ -368,7 +368,7 @@ def dauAndDnu_Bar():
 	plt.bar(dates,old_user,width = 0.35,label = "old_user")
 	plt.bar(dates,dnu,bottom=old_user,width = 0.35, label = "dnu")
 	plt.legend(loc = 'upper right')
-	path = utils.get_figure_path("dau and dnu test")
+	path = file_util.get_figure_path("dau and dnu test")
 	plt.savefig(os.path.join(path,"dau and dnu bar"),dpi=100)
 	#plt.show()
 
@@ -403,7 +403,7 @@ def dnuOfChannelId(channels = [-2]):
 			plt.bar(dates,register_count,bottom = pre, width = 0.35,label = channel)
 			pre = channel
 	plt.legend(loc = 'upper right')
-	path = utils.get_figure_path("dau and dnu")
+	path = file_util.get_figure_path("dau and dnu")
 	#plt.savefig(os.path.join(path,"dnu of differente channel"))
 	plt.show()
 	connection.close()
@@ -424,7 +424,7 @@ def dnuOfChannelID_Percent(channels = [-1]):
 	# total_register = result[1]
 	sql = "select date,register_count from log_return_s_wja_1_percent where date = %s and channel_id = %s"
 	for channel in channels:
-		path = utils.get_figure_path()
+		path = file_util.get_figure_path()
 		register_count = []
 		for i in range(len(dates)):
 			result = connection.query(sql,[dates[i],channel])

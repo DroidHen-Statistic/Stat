@@ -5,12 +5,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
 from MysqlConnection import MysqlConnection
 import numpy as np
-import utils
+from utils import *
 import copy
 import pickle
 
 def centralized(l):
-	"""o
+	"""
 	中心化向量
 	
 	Arguments:
@@ -81,8 +81,7 @@ def sim(game_id):
 
 	
 	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
-	item_user_table = utils.item_user_table(game_id)
-	item_item_table = utils.item_item_table(game_id)
+
 	# sql = "select column_name from Information_schema.columns where table_Name = %s"
 	# columns = connection.query(sql,item_user_table)
 	# columns = list(zip(*columns))[0][1:]
@@ -92,8 +91,9 @@ def sim(game_id):
 
 	
 	# 文件接口
-	log_type_tmp_path = utils.get_log_type_tmp_path("item_used", game_id)
-	total_file = utils.item_used_total_file(game_id, max(os.listdir(log_type_tmp_path)))
+	item_item_table = db_util.item_item_table(game_id)
+	log_type_tmp_path = file_util.get_log_type_tmp_path("item_used", game_id)
+	total_file = file_util.item_used_total_file(game_id, max(os.listdir(log_type_tmp_path)))
 	with open(total_file,'rb') as f:
 		total_data = pickle.load(f)
 
@@ -123,6 +123,7 @@ def sim(game_id):
 
 
 	# 数据库接口
+	# item_user_table = db_util.item_user_table(game_id)
 	# 
 	# sql = "select * from " + item_user_table
 	# result = connection.query(sql)

@@ -3,7 +3,6 @@ import config
 
 from datetime import datetime, timedelta
 from functools import reduce
-import types
 
 def get_path(base = config.base_dir, *paths):
 	ret = base
@@ -18,25 +17,29 @@ def get_figure_path(*subfolder):
 	return get_path(base,*subfolder)
 
 def item_user_table(game_id):
-	return "user_item_s_" + str(game_id)
+	return "user_item_" + game_id
 
 def item_item_table(game_id):
-	return "item_item_s_" + str(game_id)
+	return "item_item_" + game_id
 
-def log_table(log_type, game_id, server_id = 1):
-	return "log_" + log_type + "_s_wja_" + str(game_id) +"_" + str(server_id)
+def get_log_table(log_type, game_id, server_id = -1):
+	return "log_" + log_type + "_s_wja_" + game_id +"_" + str(server_id)
 
-def get_log_type_path(log_type, game_id):
-	return os.path.join(config.log_base_dir,"s_"+str(game_id),log_type +"_2")
+def get_log_type_path(log_type, game_id, server_id = -1):
+	return os.path.join(config.log_base_dir,game_id,log_type +"_2")
 
-def get_log_path(log_type, game_id, date):
+def get_log_path(log_type, game_id, date, server_id = -1):
 	year, month, day = split_date(date)
-	return os.path.join(get_log_type_path(log_type, game_id), year, month, day)
+	if server_id == 1:
+		ret = os.path.join(get_log_type_path(log_type, game_id), year, month, day)
+	else:
+		ret = os.path.join(get_log_type_path(log_type, game_id), str(server_id), year, month, day)
+	return ret
 
-def get_log_tmp_path(log_type, game_id, date):
+def get_log_tmp_path(log_type, game_id, date, server_id = -1):
 	return get_path(config.log_tmp_dir, str(game_id), log_type, str(date))
 
-def get_log_type_tmp_path(log_type, game_id):
+def get_log_type_tmp_path(log_type, game_id, server_id = -1):
 	return get_path(config.log_tmp_dir, str(game_id), log_type)
 
 def item_used_total_file(game_id,date):
@@ -61,23 +64,6 @@ def union_dict(*objs,f = lambda x,y: x + y, initial = 0):
 		total[key] = reduce(f,[obj.get(key,initial) for obj in objs])
 	return total 
 
-# def union_dict(*objs,f = lambda x,y: x + y, initial = 0):
-# 	"""
-# 	合并多个字典，相同的键，值相加
-	
-# 	union_dict({'a':1, 'b':2, 'c':3}, {'a':2, 'b':3}) ----> {'a':3, 'b':5, 'c':3}
-	
-# 	Arguments:
-# 		*objs {dict} -- 要合并的字典
-	
-# 	Returns:
-# 		[dict] -- 合并后的字典
-# 	"""
-# 	keys = set(sum([list(obj.keys()) for obj in objs],[]))
-# 	total = {}  
-# 	for key in keys: 
-# 		total[key] = reduce(f,[obj.get(key,initial) for obj in objs])
-# 	return total  
 
 def date_to_int(date):
 	return int(datetime.strftime(date,"%Y%m%d"))
