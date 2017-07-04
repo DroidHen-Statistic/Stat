@@ -1,9 +1,3 @@
-from MysqlConnection import MysqlConnection
+from utils import *
 
-conn = MysqlConnection("218.108.40.13","wja","wja","wja")
-sql = "select * from test where username = %s"
-result = conn.query(sql,"wja")
-print(result)
-
-
-
+print(date_util.split_date(20170831))

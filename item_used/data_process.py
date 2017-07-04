@@ -5,7 +5,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
 from enum import Enum,unique
 from MysqlConnection import MysqlConnection
-import utils
+# import utils
+from utils import *
+import pickle
 
 @unique
 class ItemUseFormat(Enum):
@@ -77,83 +79,55 @@ def updateUserItemTable(date_start, date_end, game_id):
 		date_end {int} -- 统计终止日期
 		game_id {int} -- 游戏id
 	"""
-	connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
-	dates = utils.get_date_list(date_start, date_end)
-	log_type_path = utils.log_type_path("item_used",game_id)
+	# connection = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+	dates = date_util.get_date_list(date_start, date_end)
+	last_day = date_util.get_yesterday(date_start)
+	last_total_file = file_util.item_used_total_file(game_id,last_day)
+	if os.path.exists(last_total_file):
+		with open(last_total_file, 'rb') as f:
+			item_used_total = pickle.dump(f)
+	else:
+		item_used_total = {}
+
 	for date in dates:
-		year,month,day = utils.split_date(date)
-		log_path = utils.get_path(log_type_path,year,month,day)
-		print("---------------" + day + "----------------")
-		table = utils.item_user_table(game_id)
+		log_path = file_util.get_log_path("item_used", game_id, date)
+		print("---------------",date,"----------------")
+		# table = utils.item_user_table(game_id)
 		user_dict = readLog(log_path)
+		item_used_total = other_util.union_dict(item_used_total, user_dict, f = other_util.union_dict, initial = {})
 		print("read_log finished")
-		for uid in user_dict:
-			sql = "select uid from " + table + " where uid = %s"
-			result = connection.query(sql,uid)
-			if len(result) == 0:
-				keys = ""
-				pattern = ""
-				values = [int(uid)]
-				for k,v in user_dict[uid].items():
-					keys += (k + ', ')
-					pattern +=("%s, ")
-					values.append(v)
-				sql = "insert into " + table + " (uid, " + keys[:-2] + ") values (%s," + pattern[:-2] + ")"
-				#print(sql)
-				connection.query(sql,values)
-			else:
-				sql = "update " + table + " set "
-				values = []
-				for k,v in user_dict[uid].items():
-					sql += (k + "= " + k + " + %s,")
-					values.append(v)
-				values.append(int(uid))
-				sql = sql[0:-1] + " where uid = %s"
-				#print(sql)
-				connection.query(sql,values)
+
+		total_file = file_util.item_used_total_file(game_id,date)
+		with open(total_file,'wb') as f:
+			pickle.dump(item_used_total, f)
+
+		# for uid in user_dict:
+		# 	sql = "select uid from " + table + " where uid = %s"
+		# 	result = connection.query(sql,uid)
+		# 	if len(result) == 0:
+		# 		keys = ""
+		# 		pattern = ""
+		# 		values = [int(uid)]
+		# 		for k,v in user_dict[uid].items():
+		# 			keys += (k + ', ')
+		# 			pattern +=("%s, ")
+		# 			values.append(v)
+		# 		sql = "insert into " + table + " (uid, " + keys[:-2] + ") values (%s," + pattern[:-2] + ")"
+		# 		#print(sql)
+		# 		connection.query(sql,values)
+		# 	else:
+		# 		sql = "update " + table + " set "
+		# 		values = []
+		# 		for k,v in user_dict[uid].items():
+		# 			sql += (k + "= " + k + " + %s,")
+		# 			values.append(v)
+		# 		values.append(int(uid))
+		# 		sql = sql[0:-1] + " where uid = %s"
+		# 		#print(sql)
+		# 		connection.query(sql,values)
 
 
-	# if years == -1:
-	# 	years = os.listdir(log_dir)
-	# for year in years:
-	# 	year_dir = os.path.join(log_dir,year)
-	# 	if months == -1:
-	# 		months = os.listdir(year_dir)
-	# 	for month in months:
-	# 		month_dir = os.path.join(year_dir, month)
-	# 		if days == -1:
-	# 			days = os.listdir(month_dir)
-	# 		for day in days:
-	# 			print("---------------" + day + "----------------")
-	# 			day_dir = os.path.join(month_dir,day)
-	# 			table = utils.item_user_table(101250)
-	# 			user_dict = readLog(day_dir)
-	# 			for uid in user_dict:
-	# 				sql = "select uid from " + table + " where uid = %s"
-	# 				result = connection.query(sql,uid)
-	# 				if len(result) == 0:
-	# 					keys = ""
-	# 					pattern = ""
-	# 					values = [int(uid)]
-	# 					for k,v in user_dict[uid].items():
-	# 						keys += (k + ', ')
-	# 						pattern +=("%s, ")
-	# 						values.append(v)
-	# 					sql = "insert into " + table + " (uid, " + keys[:-2] + ") values (%s," + pattern[:-2] + ")"
-	# 					print(sql)
-	# 					print(values)
-	# 					connection.query(sql,values)
-	# 				else:
-	# 					sql = "update " + table + " set "
-	# 					values = []
-	# 					for k,v in user_dict[uid].items():
-	# 						sql += (k + "= " + k + " + %s,")
-	# 						values.append(v)
-	# 					values.append(int(uid))
-	# 					sql = sql[0:-1] + " where uid = %s"
-	# 					#print(sql)
-	# 					connection.query(sql,values)
-	connection.close()
+	# connection.close()
 
 	
 if __name__ == "__main__":
