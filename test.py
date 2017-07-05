@@ -1,3 +1,3 @@
-from utils import *
+import utils
 
-print(date_util.split_date(20170831))
+print(split_date(20170831))

@@ -108,7 +108,7 @@ def fitDateReturn(game_id, locales = [-2], channels = [-2]):
 				y_hat = np.array([func(day,popt[0],popt[1],popt[2]) for day in days])
 				# y_hat = np.array([func(day,popt[0],popt[1]) for day in days])
 				for i in range(y_test.shape[0]):
-					err_sum += sum((y_test[i] - y_hat)**2)
+					err_sum += sum((y_test[i] - y_hat) ** 2)
 				if err_sum < min_err:
 					min_err = err_sum
 					best_popt = popt
@@ -118,7 +118,7 @@ def fitDateReturn(game_id, locales = [-2], channels = [-2]):
 			y_hat = [func(day,best_popt[0],best_popt[1],best_popt[2]) for day in days]
 			# y_hat = [func(day,best_popt[0],best_popt[1]) for day in days]
 			plt.plot(days, y_hat,'b')
-			#plt.show()
+			# plt.show()
 			plt.cla()
 
 			for i in range(len(dates)):
@@ -131,9 +131,13 @@ def fitDateReturn(game_id, locales = [-2], channels = [-2]):
 				#plt.savefig(os.path.join(path,str(dates[i])))
 				plt.cla()
 
-			with open(os.path.join(path,str(channel) + "_" + str(locale)),'w') as f:
-				f.write(str(best_popt))
 			print("result for channel %d locale %s is %f * (%f ** x) + %f" %(channel, locale, best_popt[0],best_popt[1],best_popt[2]))
+			result_path = file_util.get_result_path("return", game_id)
+			result_file = os.path.join(result_path,"channel_" + str(channel) + "_locale_" + str(locale))
+			with open(result_file, 'w') as f:
+				for p in best_popt:
+					f.write(str(p) + " ")
+				# f.write("%f * (%f ** x) + %f" %(best_popt[0],best_popt[1],best_popt[2]))
 
 	connection.close()
 		
