@@ -17,16 +17,20 @@ def get_figure_path(*subfolder):
 	return get_path(base,*subfolder)
 
 def item_user_table(game_id):
-	return "user_item_" + game_id
+	return "user_item_" + str(game_id)
 
 def item_item_table(game_id):
-	return "item_item_" + game_id
+	return "item_item_" + str(game_id)
+
+def item_item_table(game_id):
+	return "item_item_" + str(game_id)
 
 def get_log_table(log_type, game_id, server_id = -1):
 	return "log_" + log_type + "_s_wja_" + game_id +"_" + str(server_id)
 
+# 2是api的版本号，目前是2
 def get_log_type_path(log_type, game_id, server_id = -1):
-	return os.path.join(config.log_base_dir,game_id,log_type +"_2")
+	return os.path.join(config.log_base_dir,str(game_id),log_type +"_2")
 
 def get_log_path(log_type, game_id, date, server_id = -1):
 	year, month, day = split_date(date)
@@ -89,6 +93,23 @@ def get_date_list(start, end):
     for d in gen_dates(start, (end-start).days + 1):
         dates.append(date_to_int(d))
     return dates
+
+# 返回文件夹列表
+def get_log_dir_from_date(start, end, log_type, game_id, server_id=1):
+    dates = get_date_list(start, end)
+    dirs=[]
+    for date in dates:
+        dirs.append( get_log_path(log_type, game_id, date))
+    return dirs
+
+# 读入log，生成list结构
+'''
+def get_data_from_log(log_file):
+    files = os.listdir(day_dir)
+    for(cr_file in files):
+        if():
+            continue;
+'''
 
 def split_date(date):
 	date_str = str(date)
