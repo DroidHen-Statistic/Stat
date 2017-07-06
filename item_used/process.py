@@ -91,15 +91,18 @@ def sim(game_id):
 
 	
 	# 文件接口
-	item_item_table = db_util.item_item_table(game_id)
+	# item_item_table = db_util.item_item_table(game_id)
 	log_type_tmp_path = file_util.get_log_type_tmp_path("item_used", game_id)
-	total_file = file_util.item_used_total_file(game_id, max(os.listdir(log_type_tmp_path)))
+	max_date = max(os.listdir(log_type_tmp_path))
+	total_file = file_util.item_used_total_file(game_id, max_date)
 	with open(total_file,'rb') as f:
 		total_data = pickle.load(f)
 
 	items = list(set(sum([list(x.keys()) for x in total_data.values()],[])))	#拿到所有的item id
 	items = sorted(items, key = lambda x: int(x[5:]))	#这里为了最后的结果矩阵是个上三角阵，所以排了一下序
+	item_item_relation = {}
 	for i in range(len(items)):
+		item_item_relation[items[i]] = {}
 		for j in range(i,len(items)):
 			print("------%s:%s------" %(items[i],items[j]))
 			corated = []
@@ -109,14 +112,20 @@ def sim(game_id):
 			corated = np.array(corated)
 			print(len(corated))
 			if len(corated) != 0:
-				cov = np.corrcoef(corated, rowvar = False) 	#相关系数
-				sim_ij = cov[0,1] if cov[0,1] != np.nan else 0
+				corr_coef = np.corrcoef(corated, rowvar = False) 	#相关系数
+				# sim_ij = corr_coef[0,1] if corr_coef[0,1] != np.nan else 0
+				item_item_relation[items[i]][items[j]] = corr_coef[0,1] if corr_coef[0,1] != np.nan else 0
 			else:
-				sim_ij = 0
-			sql = "update " + item_item_table + " set " + items[j] + " = %s where item_id = %s"
-			print(sim_ij)
-			connection.query(sql,[float(sim_ij),items[i][5:]])
+				# sim_ij = 0
+				item_item_relation[items[i]][items[j]] = 0
+			# sql = "update " + item_item_table + " set " + items[j] + " = %s where item_id = %s"
+			print(item_item_relation[items[i]][items[j]])
+			# connection.query(sql,[float(sim_ij),items[i][5:]])
 			#print(sim_ij)
+	
+	result_path = file_util.get_result_path("item_used",game_id)
+	with open(os.path.join(result_path, "result"),'wb') as f:
+		pickle.dump(item_item_relation, f)
 
 
 
@@ -142,10 +151,10 @@ def sim(game_id):
 	# 		corated = np.array(corated)
 	# 		print(len(corated))
 	# 		if len(corated) != 0:
-	# 			cov = np.corrcoef(corated, rowvar = False) 	#协方差矩阵
-	# 			print(cov)
-	# 			# sim_ij = cov[0,1]/np.sqrt(cov[0,0] * cov[1,1])	#相关系数
-	# 			sim_ij = cov[0,1] if cov[0,1] != np.nan else 0
+	# 			corr_coef = np.corrcoef(corated, rowvar = False) 	#协方差矩阵
+	# 			print(corr_coef)
+	# 			# sim_ij = corr_coef[0,1]/np.sqrt(corr_coef[0,0] * corr_coef[1,1])	#相关系数
+	# 			sim_ij = corr_coef[0,1] if corr_coef[0,1] != np.nan else 0
 	# 		else:
 	# 			sim_ij = 0
 	# 		#sim_ij = sim_cosin(user_item_table[i],user_item_table[j])
