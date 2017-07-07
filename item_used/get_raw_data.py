@@ -97,9 +97,9 @@ def updateUserItemTable(date_start, date_end, game_id):
 		item_used_total = other_util.union_dict(item_used_total, user_dict, f = other_util.union_dict, initial = {})
 		print("read_log finished")
 
-		total_file = file_util.item_used_total_file(game_id,date)
-		with open(total_file,'wb') as f:
-			pickle.dump(item_used_total, f)
+	total_file = file_util.item_used_total_file(game_id,date)
+	with open(total_file,'wb') as f:
+		pickle.dump(item_used_total, f)
 
 		# for uid in user_dict:
 		# 	sql = "select uid from " + table + " where uid = %s"

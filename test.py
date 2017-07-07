@@ -1,3 +1,4 @@
-import utils
+from test1 import *
 
-print(split_date(20170831))
+_testFun()
+

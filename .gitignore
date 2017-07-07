@@ -4,6 +4,7 @@ __pycache__
 figures
 *.swp
 *papers
+test.py
 
 
 
