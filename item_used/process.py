@@ -71,7 +71,7 @@ def sim_person(i,j):
 
 
 
-def sim(game_id):
+def sim(date_end, game_id):
 	"""
 	计算item之间的相似度，这里采用的是pearson相关性系数
 	
@@ -93,24 +93,26 @@ def sim(game_id):
 	# 文件接口
 	# item_item_table = db_util.item_item_table(game_id)
 	log_type_tmp_path = file_util.get_log_type_tmp_path("item_used", game_id)
-	max_date = max(os.listdir(log_type_tmp_path))
+	# max_date = max(os.listdir(log_type_tmp_path))
+	max_date = date_end
 	total_file = file_util.item_used_total_file(game_id, max_date)
 	with open(total_file,'rb') as f:
 		total_data = pickle.load(f)
-
-	items = list(set(sum([list(x.keys()) for x in total_data.values()],[])))	#拿到所有的item id
-	items = sorted(items, key = lambda x: int(x[5:]))	#这里为了最后的结果矩阵是个上三角阵，所以排了一下序
 	item_item_relation = {}
+
+	
+	items = list(total_data.keys())
+	items = sorted(items,key = lambda x: int(x))
 	for i in range(len(items)):
 		item_item_relation[items[i]] = {}
-		for j in range(i,len(items)):
+		for j in range(i, len(items)):
 			print("------%s:%s------" %(items[i],items[j]))
+			users = set(total_data[items[i]].keys()) | set(total_data[items[j]].keys())
 			corated = []
-			for k,v in total_data.items():
-				if items[i] in v or items[j] in v:
-					corated.append([v.get(items[i],0), v.get(items[j],0)])
+			for user in users:
+				corated.append([total_data[items[i]].get(user,0),total_data[items[j]].get(user,0)])
 			corated = np.array(corated)
-			print(len(corated))
+			# print(len(corated))
 			if len(corated) != 0:
 				corr_coef = np.corrcoef(corated, rowvar = False) 	#相关系数
 				# sim_ij = corr_coef[0,1] if corr_coef[0,1] != np.nan else 0
@@ -122,6 +124,7 @@ def sim(game_id):
 			print(item_item_relation[items[i]][items[j]])
 			# connection.query(sql,[float(sim_ij),items[i][5:]])
 			#print(sim_ij)
+
 	
 	result_path = file_util.get_result_path("item_used",game_id)
 	with open(os.path.join(result_path, "result"),'wb') as f:
@@ -172,5 +175,6 @@ def sim(game_id):
 
 if __name__ == '__main__':
 	
-	game_id = sys.argv[1]
-	sim(game_id)
+	date_end = sys.argv[1]
+	game_id = sys.argv[2]
+	sim(date_end, game_id)
