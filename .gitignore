@@ -4,6 +4,7 @@ figures
 *.swp
 *papers
 test.py
+.vscode
 
 
 

@@ -11,6 +11,9 @@ def date_to_int(date):
 def int_to_date(date):
 	return datetime.strptime(str(date),"%Y%m%d")
 
+def int_to_datetime(date):
+    return datetime.strptime(str(date),"%Y%m%d%H%M%S")
+
 def get_yesterday(date):
 	return date_to_int(int_to_date(date) - timedelta(days = 1))
 
