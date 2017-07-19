@@ -11,6 +11,11 @@ import pickle
 from enum import Enum, unique
 import matplotlib.pyplot as plt
 from sklearn import preprocessing
+from sklearn.model_selection import StratifiedKFold
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import tree
+import pydotplus 
+
 
 @unique
 class ActionType(Enum):
@@ -96,6 +101,9 @@ class FixedQueue(object):
             self.sequence.pop(0)
         self.sequence.append(a)
 
+    def pop(self):
+        self.sequence.pop()
+
     def size(self):
         return len(self.sequence)
 
@@ -176,7 +184,9 @@ def get_data2(file):
     user_dict = {}
     purchase_odds = []
     non_odds = []
+    coins = []
     purchase_uid = set()
+    # count = 0
     with open(file, 'r') as f:
         for line in f.readlines():
             line = line.split()
@@ -189,23 +199,77 @@ def get_data2(file):
                 win = int(line[SpinFormat.WIN.value])
                 coin = int(line[SpinFormat.COIN.value])
                 odds = win / pay_in if pay_in != 0 else 0
+
+                # 只用odds
+                # if uid not in user_dict:
+                #     user_dict[uid] = FixedQueue(11)
+                # user_dict[uid].push(odds)
+                
+                # odds + coin
                 if uid not in user_dict:
-                    user_dict[uid] = FixedQueue(10)
-                user_dict[uid].push(odds)
+                    user_dict[uid] = [FixedQueue(11),coin]
+                user_dict[uid][0].push(odds)
+                user_dict[uid][1] = coin
+
             elif action_type == ActionType.PURCHASE.value:
+                # count += 1
                 purchase_uid.add(uid)
                 if uid in user_dict:
-                    user_dict[uid].fill_to_full()
-                    purchase_odds.append(user_dict[uid].sequence)
-                    user_dict.pop(uid)
+                    # 只用odds
+                    # if user_dict[uid].full():
+                    #     purchase_odds.append(preprocessing.scale(user_dict[uid].sequence))
+                    #     user_dict.pop(uid)
+                        
+                    # odds + coin
+                    if user_dict[uid][0].full():
+                        purchase_odds.append(preprocessing.scale(user_dict[uid][0].sequence + [user_dict[uid][1]/10000]))
+                        user_dict.pop(uid)
+                else:
+                    print("purchase but not recorded: ", uid)
+
     for uid, odds in user_dict.items():
         if uid not in purchase_uid:
-            odds.fill_to_full()
-            non_odds.append(odds.sequence)
+            if odds[0].full():
+                non_odds.append(preprocessing.scale(odds[0].sequence + [odds[1]/10000]))
+
+    path = file_util.get_path(config.log_tmp_dir, "slot")
+    with open(os.path.join(path,"odds_coin_purchase_scale"),'wb') as f:
+        pickle.dump(np.array(purchase_odds), f)
+    with open(os.path.join(path,"odds_coin_not_purchase_scale"),'wb') as f:
+        pickle.dump(np.array(non_odds), f)
     return purchase_odds, non_odds
 
+def train(x, y):
+    skf = StratifiedKFold(n_splits=10)
+    for train, test in skf.split(x, y):     #这里train 和 test分别保存了训练集和验证集在数据集中的下标，所以可以直接里利用该下标来取出对应的数据
+        x_train, x_test, y_train, y_test = x[train], x[test], y[train], y[test]
+        clf = tree.DecisionTreeClassifier(max_depth = 5)
+        # clf = RandomForestClassifier(max_depth = 5)
+        clf = clf.fit(x_train, y_train)
+        y_predict = clf.predict(x_test)
+        recall = 0
+        for i in range(len(y_test)):
+            if y_test[i] == 1 and y_predict[i] == 1:
+                recall += 1
+        print(y_predict)
+        print("recall: %f" %(recall/np.sum(y_test)))
+        print("positive ratio: ", np.sum(y_train)/len(y_train))
+        print("percision: ", clf.score(x_test, y_test))
+        # print(clf.predict(x_test))
+        # print(y_test)
+        # 
+    path = file_util.get_figure_path("slot")
+    with open(os.path.join(path,"test.dot"), 'w') as f:
+        f = tree.export_graphviz(clf, out_file=f)
+    dot_data = tree.export_graphviz(clf, out_file=None) 
+    graph = pydotplus.graph_from_dot_data(dot_data) 
+    graph.write_pdf(os.path.join(path,"test.pdf"))
+
+
+
+
 if __name__ == '__main__':
-    logfile = file_util.get_path(config.log_base_dir, "slot","after_read")
+    logfile = file_util.get_path(config.log_base_dir, "slot", "after_read")
     # a = ActionSequence(logfile)
     # with open("E://log_tmp//stat//slot//sequence",'wb') as f:
     #     pickle.dump(a, f)
@@ -213,13 +277,35 @@ if __name__ == '__main__':
     #     a = pickle.load(f)
     # purchase_odds,non_odds = get_data(a)
     # 
-    print(sys.getsizeof(Login(1,1)))
-    purchase_odds, non_odds = get_data2(logfile)
+    get_data2(logfile)
+    
+    path = file_util.get_path(config.log_tmp_dir, "slot")
+    with open(os.path.join(path,"odds_coin_purchase_scale"),'rb') as f:
+        purchase_odds = pickle.load(f)
+    with open(os.path.join(path,"odds_coin_purchase_scale"),'rb') as f:
+        non_odds = pickle.load(f)
+    # for x in purchase_odds:
+    #     x -= 1
+    # for x in non_odds:
+    #     x -= 1
+    path = file_util.get_figure_path("slot")
     plt.figure(1)
-    for odds in purchase_odds:
-        plt.plot(odds)
+    plt.plot([1] * len(purchase_odds[0]))
+    for i, odds in enumerate(purchase_odds):
+        plt.plot(preprocessing.scale(odds))
+        #plt.savefig(os.path.join(path, str(i)))
+        #plt.cla()
     plt.show()
-    plt.figure(2)
-    for odds in non_odds:
-        plt.plot(odds)
-    plt.show()
+
+
+    X = np.vstack((purchase_odds, non_odds))
+    Y = np.array([1] * len(purchase_odds) + [0] * len(non_odds))
+    train(X,Y)
+    # plt.figure(1)
+    # for odds in purchase_odds:
+    #     plt.plot(odds)
+    # plt.show()
+    # plt.figure(2)
+    # for odds in non_odds:
+    #     plt.plot(odds)
+    # plt.show()
