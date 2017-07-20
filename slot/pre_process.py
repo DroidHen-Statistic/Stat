@@ -91,7 +91,7 @@ class User(object):
         self.uid = uid
         self.action_list = []
 
-class FixedQueue(object):
+class FixedQueue(object):   #定长队列
     def __init__(self, capacity):
         self.sequence = []
         self.capacity = capacity
@@ -180,7 +180,7 @@ def get_data(action_sequence):
 
     return purchase_odds, non_odds
 
-def get_data2(file):
+def get_odds_data(file):
     user_dict = {}
     purchase_odds = []
     non_odds = []
@@ -201,11 +201,68 @@ def get_data2(file):
                 odds = win / pay_in if pay_in != 0 else 0
 
                 # 只用odds
-                # if uid not in user_dict:
-                #     user_dict[uid] = FixedQueue(11)
-                # user_dict[uid].push(odds)
+                if uid not in user_dict:
+                    user_dict[uid] = FixedQueue(10)
+                user_dict[uid].push(odds)
                 
-                # odds + coin
+                # # odds + coin
+                # if uid not in user_dict:
+                #     user_dict[uid] = [FixedQueue(11),coin]
+                # user_dict[uid][0].push(odds)
+                # user_dict[uid][1] = coin
+
+            elif action_type == ActionType.PURCHASE.value:
+                # count += 1
+                purchase_uid.add(uid)
+                if uid in user_dict:
+                    # 只用odds
+                    if user_dict[uid].full():
+                        purchase_odds.append(user_dict[uid].sequence)
+                        user_dict.pop(uid)
+                        
+                    # # odds + coin
+                    # if user_dict[uid][0].full():
+                    #     purchase_odds.append(preprocessing.scale(user_dict[uid][0].sequence + [user_dict[uid][1]/10000]))
+                    #     user_dict.pop(uid)
+                else:
+                    print("purchase but not recorded: ", uid)
+
+    for uid, odds in user_dict.items():
+        if uid not in purchase_uid:
+            # if odds[0].full():
+            #     non_odds.append(preprocessing.scale(odds[0].sequence + [odds[1]/10000]))
+
+            if odds.full():
+                non_odds.append(odds.sequence)
+
+    path = file_util.get_path(config.log_tmp_dir, "slot")
+    with open(os.path.join(path,"odds_purchase_scale"),'wb') as f:
+        pickle.dump(np.array(purchase_odds), f)
+    with open(os.path.join(path,"odds_not_purchase_scale"),'wb') as f:
+        pickle.dump(np.array(non_odds), f)
+    return purchase_odds, non_odds
+
+def get_odds_coin_data(file):
+    user_dict = {}
+    purchase_odds = []
+    non_odds = []
+    coins = []
+    purchase_uid = set()
+    # count = 0
+    with open(file, 'r') as f:
+        for line in f.readlines():
+            line = line.split()
+            if len(line) == 0:
+                continue
+            action_type = int(line[0])
+            uid = int(line[2])
+            if action_type == ActionType.SPIN.value:
+                pay_in = int(line[SpinFormat.PAY_IN.value])
+                win = int(line[SpinFormat.WIN.value])
+                coin = int(line[SpinFormat.COIN.value])
+                odds = win / pay_in if pay_in != 0 else 0
+                
+                # # odds + coin
                 if uid not in user_dict:
                     user_dict[uid] = [FixedQueue(11),coin]
                 user_dict[uid][0].push(odds)
@@ -215,12 +272,8 @@ def get_data2(file):
                 # count += 1
                 purchase_uid.add(uid)
                 if uid in user_dict:
-                    # 只用odds
-                    # if user_dict[uid].full():
-                    #     purchase_odds.append(preprocessing.scale(user_dict[uid].sequence))
-                    #     user_dict.pop(uid)
                         
-                    # odds + coin
+                    # # odds + coin
                     if user_dict[uid][0].full():
                         purchase_odds.append(preprocessing.scale(user_dict[uid][0].sequence + [user_dict[uid][1]/10000]))
                         user_dict.pop(uid)
@@ -243,7 +296,7 @@ def train(x, y):
     skf = StratifiedKFold(n_splits=10)
     for train, test in skf.split(x, y):     #这里train 和 test分别保存了训练集和验证集在数据集中的下标，所以可以直接里利用该下标来取出对应的数据
         x_train, x_test, y_train, y_test = x[train], x[test], y[train], y[test]
-        clf = tree.DecisionTreeClassifier(max_depth = 5)
+        clf = tree.DecisionTreeClassifier(max_depth = 10)
         # clf = RandomForestClassifier(max_depth = 5)
         clf = clf.fit(x_train, y_train)
         y_predict = clf.predict(x_test)
@@ -261,7 +314,7 @@ def train(x, y):
     path = file_util.get_figure_path("slot")
     with open(os.path.join(path,"test.dot"), 'w') as f:
         f = tree.export_graphviz(clf, out_file=f)
-    dot_data = tree.export_graphviz(clf, out_file=None) 
+    dot_data = tree.export_graphviz(clf, out_file=None)
     graph = pydotplus.graph_from_dot_data(dot_data) 
     graph.write_pdf(os.path.join(path,"test.pdf"))
 
@@ -277,17 +330,37 @@ if __name__ == '__main__':
     #     a = pickle.load(f)
     # purchase_odds,non_odds = get_data(a)
     # 
-    get_data2(logfile)
+    # get_odds_data(logfile)
     
     path = file_util.get_path(config.log_tmp_dir, "slot")
-    with open(os.path.join(path,"odds_coin_purchase_scale"),'rb') as f:
+    with open(os.path.join(path,"odds_purchase_scale"),'rb') as f:
         purchase_odds = pickle.load(f)
-    with open(os.path.join(path,"odds_coin_purchase_scale"),'rb') as f:
+    with open(os.path.join(path,"odds_not_purchase_scale"),'rb') as f:
         non_odds = pickle.load(f)
-    # for x in purchase_odds:
-    #     x -= 1
-    # for x in non_odds:
-    #     x -= 1
+    purchase_odds_diff = np.diff(purchase_odds)    
+    non_odds_diff = np.diff(non_odds)
+
+    purchase_odds_std = np.std(purchase_odds, axis=1)
+    non_odds_diff_std = np.std(non_odds, axis=1)
+
+
+
+    # purchase_odds_diff = [np.diff(x) for x in purchase_odds]
+    # non_odds_diff = [np.diff(x) for x in non_odds]
+
+    # for i,x in enumerate(purchase_odds):
+    #     purchase_odds_diff[i].append(np.std(x))
+    # for i,x in enumerate(non_odds):
+    #     non_odds_diff[i].append(np.std(x))
+
+    X = np.vstack((purchase_odds, non_odds))
+    X_std = np.std(X, axis = 1).reshape(-1, 1)
+    Y = np.array([1] * purchase_odds_diff.shape[0] + [0] * non_odds_diff.shape[0])
+    print(X)
+    print(X_std)
+    X = np.hstack((X,X_std))
+    print(X)
+
     path = file_util.get_figure_path("slot")
     plt.figure(1)
     plt.plot([1] * len(purchase_odds[0]))
@@ -298,8 +371,7 @@ if __name__ == '__main__':
     plt.show()
 
 
-    X = np.vstack((purchase_odds, non_odds))
-    Y = np.array([1] * len(purchase_odds) + [0] * len(non_odds))
+
     train(X,Y)
     # plt.figure(1)
     # for odds in purchase_odds:
