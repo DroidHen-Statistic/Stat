@@ -1,10 +1,10 @@
 config.py
-
 __pycache__
 figures
 *.swp
 *papers
 test.py
+.vscode
 
 
 

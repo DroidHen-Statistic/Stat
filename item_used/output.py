@@ -20,6 +20,6 @@ item_item_table = db_util.get_item_item_table(game_id)
 
 for k,v in item_item_relation.items():
 	for vk, vv in v.items():
-		sql = "update " + item_item_table + " set " + vk + " = %s where item_id = %s"
-		connection.query(sql,[float(vv),k[5:]])
+		sql = "update " + item_item_table + " set item_" + vk + " = %s where item_id = %s"
+		connection.query(sql,(float(vv),k))
 

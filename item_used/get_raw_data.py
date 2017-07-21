@@ -51,13 +51,12 @@ def readLog(day_dir):
 					item = line[ItemUseFormat.ITEM.value]
 					count = line[ItemUseFormat.COUNT.value]
 
-					if not uid in result:
-						result[uid] = {}
-					item_id = "item_" + item
-					if item_id in result[uid]:
-						result[uid][item_id] += int(count)
+					if not item in result:
+						result[item] = {}
+					if uid in result[item]:
+						result[item][uid] += int(count)
 					else:
-						result[uid][item_id] = int(count)
+						result[item][uid] = int(count)
 	return result
 					
 	# 			sql = "select uid, " + item_id +" from " + table + " where uid = %s"
@@ -86,6 +85,7 @@ def updateUserItemTable(date_start, date_end, game_id):
 	if os.path.exists(last_total_file):
 		with open(last_total_file, 'rb') as f:
 			item_used_total = pickle.dump(f)
+		os.remove(last_total_file)
 	else:
 		item_used_total = {}
 
