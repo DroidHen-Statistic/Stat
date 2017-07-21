@@ -3,7 +3,7 @@ import config
 
 from datetime import datetime, timedelta
 from functools import reduce
-
+import time
 
 def date_to_int(date):
 	return int(datetime.strftime(date,"%Y%m%d"))
@@ -42,3 +42,7 @@ def split_date(date):
 	month = date_str[4:6]
 	day = date_str[6:8]
 	return year,month,day
+
+def int_to_timestamp(data_int):
+    d = datetime.strptime(str(data_int),"%Y%m%d%H%M%S").timetuple()
+    return int(time.mktime(d))
