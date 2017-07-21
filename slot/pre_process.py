@@ -186,67 +186,67 @@ def get_data(action_sequence):
 
     return purchase_odds, non_odds
 
-def get_odds_data(file):
-    user_dict = {}
-    purchase_odds = []
-    non_odds = []
-    coins = []
-    purchase_uid = set()
-    # count = 0
-    with open(file, 'r') as f:
-        for line in f.readlines():
-            line = line.split()
-            if len(line) == 0:
-                continue
-            action_type = int(line[0])
-            uid = int(line[2])
-            if action_type == ActionType.SPIN.value:
-                pay_in = int(line[SpinFormat.PAY_IN.value])
-                win = int(line[SpinFormat.WIN.value])
-                coin = int(line[SpinFormat.COIN.value])
-                odds = win / pay_in if pay_in != 0 else 0
+# def get_odds_data(file):
+#     user_dict = {}
+#     purchase_odds = []
+#     non_odds = []
+#     coins = []
+#     purchase_uid = set()
+#     # count = 0
+#     with open(file, 'r') as f:
+#         for line in f.readlines():
+#             line = line.split()
+#             if len(line) == 0:
+#                 continue
+#             action_type = int(line[0])
+#             uid = int(line[2])
+#             if action_type == ActionType.SPIN.value:
+#                 pay_in = int(line[SpinFormat.PAY_IN.value])
+#                 win = int(line[SpinFormat.WIN.value])
+#                 coin = int(line[SpinFormat.COIN.value])
+#                 odds = win / pay_in if pay_in != 0 else 0
 
-                # 只用odds
-                if uid not in user_dict:
-                    user_dict[uid] = FixedQueue(10)
-                user_dict[uid].push(odds)
+#                 # 只用odds
+#                 if uid not in user_dict:
+#                     user_dict[uid] = FixedQueue(10)
+#                 user_dict[uid].push(odds)
                 
-                # # odds + coin
-                # if uid not in user_dict:
-                #     user_dict[uid] = [FixedQueue(11),coin]
-                # user_dict[uid][0].push(odds)
-                # user_dict[uid][1] = coin
+#                 # # odds + coin
+#                 # if uid not in user_dict:
+#                 #     user_dict[uid] = [FixedQueue(11),coin]
+#                 # user_dict[uid][0].push(odds)
+#                 # user_dict[uid][1] = coin
 
-            elif action_type == ActionType.PURCHASE.value:
-                # count += 1
-                purchase_uid.add(uid)
-                if uid in user_dict:
-                    # 只用odds
-                    if user_dict[uid].full():
-                        purchase_odds.append(user_dict[uid].sequence)
-                        user_dict.pop(uid)
+#             elif action_type == ActionType.PURCHASE.value:
+#                 # count += 1
+#                 purchase_uid.add(uid)
+#                 if uid in user_dict:
+#                     # 只用odds
+#                     if user_dict[uid].full():
+#                         purchase_odds.append(user_dict[uid].sequence)
+#                         user_dict.pop(uid)
                         
-                    # # odds + coin
-                    # if user_dict[uid][0].full():
-                    #     purchase_odds.append(preprocessing.scale(user_dict[uid][0].sequence + [user_dict[uid][1]/10000]))
-                    #     user_dict.pop(uid)
-                else:
-                    print("purchase but not recorded: ", uid)
+#                     # # odds + coin
+#                     # if user_dict[uid][0].full():
+#                     #     purchase_odds.append(preprocessing.scale(user_dict[uid][0].sequence + [user_dict[uid][1]/10000]))
+#                     #     user_dict.pop(uid)
+#                 else:
+#                     print("purchase but not recorded: ", uid)
 
-    for uid, odds in user_dict.items():
-        if uid not in purchase_uid:
-            # if odds[0].full():
-            #     non_odds.append(preprocessing.scale(odds[0].sequence + [odds[1]/10000]))
+#     for uid, odds in user_dict.items():
+#         if uid not in purchase_uid:
+#             # if odds[0].full():
+#             #     non_odds.append(preprocessing.scale(odds[0].sequence + [odds[1]/10000]))
 
-            if odds.full():
-                non_odds.append(odds.sequence)
+#             if odds.full():
+#                 non_odds.append(odds.sequence)
 
-    path = file_util.get_path(config.log_tmp_dir, "slot")
-    with open(os.path.join(path,"odds_purchase_scale"),'wb') as f:
-        pickle.dump(np.array(purchase_odds), f)
-    with open(os.path.join(path,"odds_not_purchase_scale"),'wb') as f:
-        pickle.dump(np.array(non_odds), f)
-    return purchase_odds, non_odds
+#     path = file_util.get_path(config.log_tmp_dir, "slot")
+#     with open(os.path.join(path,"odds_purchase_scale"),'wb') as f:
+#         pickle.dump(np.array(purchase_odds), f)
+#     with open(os.path.join(path,"odds_not_purchase_scale"),'wb') as f:
+#         pickle.dump(np.array(non_odds), f)
+#     return purchase_odds, non_odds
 
 def get_odds_data(file):
     user_dict = {}
