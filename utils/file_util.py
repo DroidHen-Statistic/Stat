@@ -65,3 +65,15 @@ def get_log_files(date_start, date_end, log_type, game_id, server_id = -1):
                 log_files.append(full_file)
 #                read_log_file(full_file, uid_item_count)
         return log_files
+
+def check_and_mk_dir(path):
+    isExists = os.path.exists(path)
+    # 判断结果
+    if isExists:
+        return False
+    else:
+        # 如果不存在则创建目录
+        # print path + ' 创建成功'
+        # 创建目录操作函数
+        os.makedirs(path)
+        return True
