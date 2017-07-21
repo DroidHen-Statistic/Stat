@@ -35,6 +35,9 @@ class SpinFormat(Enum):
     COIN = 7
     WIN_BONUS = 8
     WIN_FREE_SPIN = 9
+    BET = 10
+    LINES = 11
+    LEVEL = 12
 
 @unique
 class LoginFormat(Enum):
@@ -65,16 +68,19 @@ class Login(Action):
         Action.__init__(self, ActionType.LOGIN.value, time, uid)
 
 class Spin(Action):
-    def __init__(self, time, uid, is_free, machine_id, pay_in, win, coin, win_bonus, win_free_spin):
+    def __init__(self, time, uid, is_free, machine_id, bet, lines, pay_in, win, coin, win_bonus, win_free_spin, level):
         Action.__init__(self, ActionType.SPIN.value, time, uid)
         self.is_free = is_free
         self.machine_id = machine_id
+        self.bet = bet
+        self.lines = lines
         self.pay_in = pay_in
         self.win = win
         self.coin = coin
         self.win_bonus = win_bonus
         self.win_free_spin = win_free_spin
         self.odds = self.win / self.pay_in if self.pay_in != 0 else 0
+        self.level = level
 
 class PlayBonus(Action):
     def __init__(self, time, uid, machine_id, total_win, coin):
@@ -241,6 +247,70 @@ def get_odds_data(file):
     with open(os.path.join(path,"odds_not_purchase_scale"),'wb') as f:
         pickle.dump(np.array(non_odds), f)
     return purchase_odds, non_odds
+
+def get_odds_data(file):
+    user_dict = {}
+    purchase_spins = []
+    non_spins = []
+    coins = []
+    purchase_uid = set()
+    # count = 0
+    with open(file, 'r') as f:
+        for line in f.readlines():
+            line = line.split()
+            if len(line) == 0:
+                continue
+            action_type = int(line[0])
+            time = date_util.int_to_datetime(line[1])
+            uid = int(line[2])
+            if action_type == ActionType.SPIN.value:
+                is_free = int(line[SpinFormat.IS_FREE.value])
+                machine_id = int(line[SpinFormat.MACHINE_ID.value])
+                pay_in = int(line[SpinFormat.PAY_IN.value])
+                win = int(line[SpinFormat.WIN.value])
+                coin = int(line[SpinFormat.COIN.value])
+                win_bonus = int(line[SpinFormat.WIN_BONUS.value])
+                win_free_spin = int(line[SpinFormat.WIN_FREE_SPIN.value])
+                bet = int(line[SpinFormat.BET.value])
+                lines = int(line[SpinFormat.LINES.value])
+                level = int(line[SpinFormat.LEVEL.value])
+
+                if uid not in user_dict:
+                    user_dict[uid] = FixedQueue(10)
+                user_dict[uid].push(Spin(time, uid, is_free, machine_id, bet, lines, pay_in, win, coin, win_bonus, win_free_spin, level))
+
+
+            elif action_type == ActionType.PURCHASE.value:
+                # count += 1
+                purchase_uid.add(uid)
+                if uid in user_dict:
+                    # 只用odds
+                    if user_dict[uid].full():
+                        purchase_spins.append(user_dict[uid].sequence)
+                        user_dict.pop(uid)
+                        
+                    # # odds + coin
+                    # if user_dict[uid][0].full():
+                    #     purchase_odds.append(preprocessing.scale(user_dict[uid][0].sequence + [user_dict[uid][1]/10000]))
+                    #     user_dict.pop(uid)
+                else:
+                    print("purchase but not recorded: ", uid)
+
+    for uid, odds in user_dict.items():
+        if uid not in purchase_uid:
+            # if odds[0].full():
+            #     non_odds.append(preprocessing.scale(odds[0].sequence + [odds[1]/10000]))
+
+            if odds.full():
+                non_odds.append(odds.sequence)
+
+    path = file_util.get_path(config.log_tmp_dir, "slot")
+    with open(os.path.join(path,"odds_purchase_scale"),'wb') as f:
+        pickle.dump(np.array(purchase_odds), f)
+    with open(os.path.join(path,"odds_not_purchase_scale"),'wb') as f:
+        pickle.dump(np.array(non_odds), f)
+    return purchase_odds, non_odds
+
 
 def get_odds_coin_data(file):
     user_dict = {}
