@@ -350,10 +350,15 @@ def get_odds_coin_data(file):
         pickle.dump(np.array(non_odds), f)
     return purchase_odds, non_odds
 
+def pearson(X, Y):
+    a = np.array(list(map(lambda w:pearsonr(w, Y), X.T))).T
+    return a[0], a[1]
 
 def select_feature(x,y):
-
-    SelectKBest(lambda X, Y: np.array(list(map(lambda x:pearsonr(x, Y), X.T))).T, k=2).fit_transform(x, y)
+    s = SelectKBest(pearson, k=2)
+    s.fit(x,y)
+    print(s.scores_)
+    x_new = s.transform(x)
 
 def train(x, y):
     skf = StratifiedKFold(n_splits=10)
@@ -411,10 +416,8 @@ if __name__ == '__main__':
     X = np.vstack((purchase_odds, non_odds))
     X_std = np.std(X, axis = 1).reshape(-1, 1)
     Y = np.array([1] * purchase_odds_diff.shape[0] + [0] * non_odds_diff.shape[0])
-    print(X)
-    print(X_std)
-    X = np.hstack((X,X_std))
-    print(X)
+
+    # X = np.hstack((X,X_std))
 
     select_feature(X,Y)
 
