@@ -207,7 +207,8 @@ class Log_Parser(object):
         # self.feature_uid_seq = np.full(
         #     (feature_counts), fill_value=defaultdict(self.FixedQueueFactory))
 
-        self.uid_last_spin = defaultdict(int) # 上次转的时间戳
+        self.uid_last_spin = defaultdict(int)  # 上次转的时间戳
+        self.uid_negtive_seq_len = defaultdict(int)  # 记录了几个反例充值的序列
 
         self.feature_uid_seq = np.zeros(feature_counts, dtype=defaultdict)
         for i in range(feature_counts):
@@ -239,8 +240,8 @@ class Log_Parser(object):
     def FixedQueueFactory(self):
         return copy.deepcopy(FixedQueueArray(self.sequence_len))
 
-    def out_put_to_files(self, uid, pay=0):
-        # TODO 输出到文件
+    def out_put_to_files(self, uid, pay=0, clear=0):
+        # 输出到文件
         cr_out_dir = os.path.join(
             self.out_put_dir, str(uid))
         file_util.check_and_mk_dir(cr_out_dir)
@@ -252,7 +253,9 @@ class Log_Parser(object):
                 uid, feature_pos, cr_out_dir, pay)
             with open(cr_out_file, "a") as f:
                 f.write(str(cr_sq) + "\n")
-                cr_sq.clear()
+                if(clear):  # 充值才清空
+                    cr_sq.clear()
+        self.uid_negtive_seq_len[uid] = 0
 
     def uid_seq_full(self, uid):
         return self.feature_uid_seq[FeaturePosFormat.ODDS.value][uid].full()
@@ -261,11 +264,11 @@ class Log_Parser(object):
         date_int = int(line[SpinFormat.DATETIME.value])
         uid = int(line[SpinFormat.UID.value])
 
-        timestamp =  date_util.int_to_timestamp(date_int)
+        timestamp = date_util.int_to_timestamp(date_int)
         last_timestamp = self.uid_last_spin[uid]
         seconds_past = 0 if last_timestamp == 0 else timestamp - last_timestamp
         self.uid_last_spin[uid] = timestamp
-        
+
         machine_id = int(line[SpinFormat.MACHINE_ID.value])
         pay_in = int(line[SpinFormat.PAY_IN.value])
         use_free = int(line[SpinFormat.IS_FREE.value])
@@ -278,9 +281,10 @@ class Log_Parser(object):
         level = int(line[SpinFormat.LEVEL.value])
 
         odds = win_bonus / (bet * lines)
-
-        if(self.uid_seq_full(uid)):
+        if self.uid_negtive_seq_len[uid] >= self.sequence_len:
+            # if(self.uid_seq_full(uid)):
             self.out_put_to_files(uid)
+            # self.uid_negtive_seq_len[uid] = 0
 # @unique
 #     class FeaturePosFormat(Enum):
 #         ODDS = 0
@@ -301,19 +305,20 @@ class Log_Parser(object):
             uid].push(win_bonus)
         self.feature_uid_seq[FeaturePosFormat.COIN.value][uid].push(coin)
         self.feature_uid_seq[FeaturePosFormat.LEVEL.value][uid].push(level)
+        self.uid_negtive_seq_len[uid] += 1
         # exit()
-# # TODO
 
     def parse_login(self, line):
         uid = int(line[LoginFormat.UID.value])
+        # if self.uid_negtive_seq_len[uid] >= self.sequence_len:
         if self.uid_seq_full(uid):
-            self.out_put_to_files(uid)
+            self.out_put_to_files(uid, clear=1)
             self.uid_last_spin[uid] = 0
 
     def parse_pay(self, line):
         uid = int(line[PurchaseFormat.UID.value])
         if self.uid_seq_full(uid):
-            self.out_put_to_files(uid, pay=1)
+            self.out_put_to_files(uid, pay=1, clear=1)
 
     def parse_play_bonus(self, line):
         uid = int(line[PurchaseFormat.UID.value])
@@ -338,9 +343,9 @@ class Log_Parser(object):
         # exit()
 
 if __name__ == '__main__':
-    log_file = os.path.join(config.log_base_dir, "after_read")
+    log_file = os.path.join(config.log_base_dir, "after_read.txt")
     # out_file_odds = os.path.join(config.log_result_dir, "odds")
-    parser = Log_Parser(log_file, 2, config.log_result_dir)
+    parser = Log_Parser(log_file, 10, config.log_result_dir)
     # print(parser)
 
     parser.parse_log()
