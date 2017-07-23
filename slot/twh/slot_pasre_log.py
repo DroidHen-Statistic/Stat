@@ -280,7 +280,7 @@ class Log_Parser(object):
         lines = int(line[SpinFormat.LINES.value])
         level = int(line[SpinFormat.LEVEL.value])
 
-        odds = win_bonus / (bet * lines)
+        odds = round(win / (bet * lines), 2)
         if self.uid_negtive_seq_len[uid] >= self.sequence_len:
             # if(self.uid_seq_full(uid)):
             self.out_put_to_files(uid)
