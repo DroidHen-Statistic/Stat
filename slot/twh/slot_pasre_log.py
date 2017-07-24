@@ -340,7 +340,7 @@ class Log_Parser(object):
 if __name__ == '__main__':
     log_file = os.path.join(config.log_base_dir, "after_read")
     # out_file_odds = os.path.join(config.log_result_dir, "odds")
-    parser = Log_Parser(log_file, 2, config.log_result_dir)
+    parser = Log_Parser(log_file, 10, config.log_result_dir)
     # print(parser)
 
     parser.parse_log()
