@@ -84,9 +84,9 @@ def read_user_data(file_dir, seq_len, max_len):
             # 前后的金币差
             line = line.split(" ")
             cr_data[0] = float(line[1]) - float(line[-1])
-            if file_type == 0 and float(line[-1]) > 3300000:
-                break
-            cr_data[1] = float(line[-1])
+            # if file_type == 0 and float(line[-1]) > 100000:
+            #     continue
+            # cr_data[1] = float(line[-1])
 
             line = f_bonus.readline().strip()
             line = list(map(float, line.split(" ")[max_len - seq_len::]))
@@ -106,7 +106,8 @@ def read_user_data(file_dir, seq_len, max_len):
                 cr_data[5 + i] = float(line[max_len - seq_len + i])
                 
 
-
+            cr_data = np.hstack((cr_data[0],cr_data[2:]))
+            print(cr_data)
             data.append(cr_data)
             label.append(file_type)
         
@@ -142,34 +143,47 @@ def gen_uid_vector(seq_len, max_len):
     return uid_2_vectors
 # exit()
 
-def train_plot(x, y, seq_len):
+def train_plot(x, y, seq_len, uid):
     # scaler = StandardScaler()
     # x = scaler.fit_transform(x)
     
     # x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1, random_state=42)
     # print(y_test)
+    pay_count = np.sum(y)
     x_train = x_test = x
     y_train = y_test = y
+    # print(len(x))
+    # print([x_[1] for x_ in x[-pay_count:]])
+    # print(np.mean([x_[1] for x_ in x[-pay_count:]]))
+    # plt.plot([x_[1] for x_ in x[-pay_count:]],'b-o')
+    # plt.show()
+    # plt.cla()
 
-    print([x_[1] for x_ in x[-31:]])
-    print(np.mean([x_[1] for x_ in x[-31:]]))
-    plt.plot([x_[1] for x_ in x[-31:]],'b-o')
-    plt.show()
-    plt.cla()
-
-
-    path = file_util.get_figure_path("slot","1675766")
+    path = file_util.get_figure_path("slot",str(uid))
     plt.figure(1)
     for i in range(seq_len):
-        plt.plot([x_[-seq_len + i] for x_ in x[-31:]],'b-o')
+        plt.plot([x_[-seq_len + i] for x_ in x[-pay_count:]],'b-o')
         plt.savefig(os.path.join(path, "odds"+str(i)))
         plt.cla()
 
     for i in range(5):
         for j in range(5):
-            plt.plot(x[-31 + i*5 +j][-10:], '-o')
+            plt.plot(x[-31 + i*5 +j][-seq_len:], '-o')
         plt.savefig(os.path.join(path, "odds_seq_" + str(i)))
         plt.cla()
+
+    count = 0
+    i = 0
+    for seq in x[:-pay_count]:
+        count += 1
+        if count > 5:
+            count = 1
+            i += 1
+            plt.savefig(os.path.join(path, "odds_seq_no_pay_"+str(i)))
+            plt.cla()
+        plt.plot(seq[-seq_len:],'-o')
+    plt.savefig(os.path.join(path, "odds_seq_no_pay_"+str(i+1)))
+
     # for seq in x[-31:]:
     #     plt.plot(seq[-seq_len:], '-o')
     # plt.savefig(os.path.join(path, "odds_seq"))
@@ -200,22 +214,21 @@ def train_plot(x, y, seq_len):
     plt.legend(loc = "upper right")
     plt.savefig(os.path.join(path, "odds_var"))
 
-    # clfs = [tree.DecisionTreeClassifier(max_depth = 5),
-        # RandomForestClassifier(max_depth = 5),ExtraTreesClassifier(),AdaBoostClassifier(),GradientBoostingClassifier(),GaussianNB()]
-        # 
-    clfs = [GaussianNB()]
-    for clf in clfs:
+    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5),
+        "RF":RandomForestClassifier(max_depth = 5),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier(),"Bayes":GaussianNB()}
+    for name, clf in clfs.items():
+        print("------%s-------" % name)
         pipe_lr = Pipeline([('clf', clf)])
 
-        recall = np.mean(cross_val_score(clf, x_train,
-                                y_train, scoring="recall", cv=5))
+        # recall = np.mean(cross_val_score(clf, x_train,
+        #                         y_train, scoring="recall", cv=5))
         # precision = np.mean(cross_val_score(clf, x_train,
         #                         y_train, scoring="precision", cv=5))
         # roc_auc = np.mean(cross_val_score(clf, x_train,
         #                         y_train, scoring="roc_auc", cv=5))
         # f1 = np.mean(cross_val_score(clf, x_train,
         #                         y_train, scoring="f1", cv=5))
-        # print(recall, precision, roc_auc)
+        # print(recall, precision)
         pipe_lr.fit(x_train, y_train)
         y_predict = pipe_lr.predict(x_test)
         pay_count = np.sum(y_test)
@@ -263,10 +276,12 @@ def train(x, y):
     # print(np.mean(tmp))
     
 
-    clfs = [tree.DecisionTreeClassifier(max_depth = 5),
-        RandomForestClassifier(max_depth = 5),ExtraTreesClassifier(),AdaBoostClassifier(),GradientBoostingClassifier(),GaussianNB()]
-
-    for clf in clfs:
+    # clfs = [tree.DecisionTreeClassifier(max_depth = 5),
+        # RandomForestClassifier(max_depth = 5),ExtraTreesClassifier(),AdaBoostClassifier(),GradientBoostingClassifier(),GaussianNB()]
+    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5),
+        "RF":RandomForestClassifier(max_depth = 5),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier(),"Bayes":GaussianNB()}
+    for name, clf in clfs.items():
+        print("------%s-------" % name)
         pipe_lr = Pipeline([('clf', clf)])
 
         recall = np.mean(cross_val_score(clf, x_train,
@@ -294,13 +309,14 @@ if __name__ == '__main__':
     seq_len = 10
     max_len = 10
     uid_2_vectors = gen_uid_vector(seq_len, max_len)
+    uids = [1560678,1650303,1662611,1673914, 1674926,1675766]
     # for uid, vectors in uid_2_vectors.items():
     #     print("--------",uid,"--------------")
     # # X = np.array(sum([x[0] for x in uid_2_vectors.values()],[]))
     # # Y = np.array(sum([x[1] for x in uid_2_vectors.values()],[]))
     #     train(vectors[0], vectors[1])
-
-    train_plot(uid_2_vectors['1675766'][0], uid_2_vectors['1675766'][1], seq_len)
+    for uid in uids:
+        train_plot(uid_2_vectors[str(uid)][0], uid_2_vectors[str(uid)][1], seq_len, uid)
 
 
 
