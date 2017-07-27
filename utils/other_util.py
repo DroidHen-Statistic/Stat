@@ -1,7 +1,7 @@
 import sys
 import os
 # sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import config
+# import config
 
 
 from functools import reduce
@@ -66,6 +66,8 @@ selector.fit_transform(X, Y)
 # 皮尔逊相关系数,线性相关表现比较好
 from scipy.stats import pearsonr  # 皮尔逊相关系数
 # 和select搭配的相关性计算函数
+
+
 def mul_score_pv(X, Y, my_func):
     """
     X: 训练数据, 列是特征，行是样本
@@ -105,14 +107,60 @@ def mul_score(X, Y, my_func):
     return scores
 
 # 多维的皮尔逊相关
+
+
 def mul_pearson(X, Y):
     return mul_score_pv(X, Y, pearsonr)
 
 # 多维的互信息
 from sklearn import metrics as mr
+
+
 def mul_mutula_info(X, Y):
     return mul_score(X, Y, mr.mutual_info_score)
 
 
 # 卡方检验，本来就是多维的
 from sklearn.feature_selection import chi2
+
+
+from sklearn.pipeline import Pipeline
+from sklearn.base import BaseEstimator
+from sklearn.model_selection import cross_val_score
+class ScoreEstimator(BaseEstimator):
+    """ScoreEstimator
+        可以打分的分类器
+        传入想打分的类型，预测器和折叠次数
+        可供流水线使用
+
+    # from sklearn.linear_model import LogisticRegression
+    # reg = LogisticRegression()
+    # reg.set_params(C = 0.1, class_weight ='balanced') # class_weight={0:0.9, 1:0.1}
+    # my_est = ScoreEstimator(reg, "recall")
+    # pipe = Pipeline([('reg', my_est)])
+    # from numpy.random import rand
+    # X = rand(10,2)
+    # y = rand(10) > 0.5 
+    # pipe.fit(X, y)
+    # print(pipe.score(X, y))
+    """
+    def __init__(self, est_, scoring, cv=2):
+        super(ScoreEstimator, self).__init__()
+        self.est_ = est_
+        self.scoring = scoring
+        self.cv = cv
+
+    def fit(self, X, y):
+        self.est_.fit(X, y)
+
+    def fit_transform(self, X, y):
+        self.est_fit_transform(X, y)
+
+    def fit_transform(self, X, y):
+        self.est_fit_transform(X, y)
+
+    def score(self, X, y):
+        score = cross_val_score(self.est_, X,
+                                        y, scoring=self.scoring, cv=self.cv)
+        return score
+
