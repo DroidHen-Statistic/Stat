@@ -133,16 +133,19 @@ class ScoreEstimator(BaseEstimator):
         传入想打分的类型，预测器和折叠次数
         可供流水线使用
 
-    # from sklearn.linear_model import LogisticRegression
-    # reg = LogisticRegression()
-    # reg.set_params(C = 0.1, class_weight ='balanced') # class_weight={0:0.9, 1:0.1}
-    # my_est = ScoreEstimator(reg, "recall")
-    # pipe = Pipeline([('reg', my_est)])
-    # from numpy.random import rand
-    # X = rand(10,2)
-    # y = rand(10) > 0.5 
-    # pipe.fit(X, y)
-    # print(pipe.score(X, y))
+    from sklearn.linear_model import LogisticRegression
+    reg = LogisticRegression()
+    reg.set_params(C = 0.1, class_weight ='balanced') # class_weight={0:0.9, 1:0.1}
+    my_est = ScoreEstimator(reg, "recall")
+    # my_est.set_params(C = 0.2)
+    pipe = Pipeline([('reg', my_est)])
+    from numpy.random import rand
+    X = rand(10,2)
+    print(X)
+    y = rand(10) > 0.5 
+    pipe.fit(X, y)
+    print(my_est.predict(X))
+    print(pipe.score(X, y))
     """
     def __init__(self, est_, scoring, cv=2):
         super(ScoreEstimator, self).__init__()
@@ -153,14 +156,19 @@ class ScoreEstimator(BaseEstimator):
     def fit(self, X, y):
         self.est_.fit(X, y)
 
-    def transform(self, X, y):
-        self.est_transform(X, y)
+    # def set_params(self, **params):
+    #     self.est_.set_params(params)
 
-    def fit_transform(self, X, y):
-        self.est_fit_transform(X, y)
+    # def get_params(self, deep=True):
+    #     self.est_.set_params(deep)
+
+    def predict(self, X):
+        return self.est_.predict(X)
+
+    # def fit_transform(self, X, y):
+    #     self.est_fit_transform(X, y)
 
     def score(self, X, y):
         score = cross_val_score(self.est_, X,
                                         y, scoring=self.scoring, cv=self.cv)
         return score
-
