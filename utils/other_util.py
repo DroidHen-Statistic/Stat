@@ -153,8 +153,8 @@ class ScoreEstimator(BaseEstimator):
     def fit(self, X, y):
         self.est_.fit(X, y)
 
-    def fit_transform(self, X, y):
-        self.est_fit_transform(X, y)
+    def transform(self, X, y):
+        self.est_transform(X, y)
 
     def fit_transform(self, X, y):
         self.est_fit_transform(X, y)
