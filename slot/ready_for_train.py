@@ -159,7 +159,6 @@ def train_plot(x, y, seq_len, uid):
     pay_coins = sorted(pay_coins)
     print(pay_coins)
     print("coin:", pay_coins[int(len(pay_coins)/4.0 * 3)])
-    return pay_coins
 
     # print([x_[1] for x_ in x[-pay_count:]])
     # print(np.mean([x_[1] for x_ in x[-pay_count:]]))
@@ -367,15 +366,18 @@ if __name__ == '__main__':
     coins = {}
     for uid in uids:
         print("uid: %d" %uid)
-        ret = train_plot(uid_2_vectors[str(uid)][0], uid_2_vectors[str(uid)][1], seq_len, uid)
-        coins[uid] = ret
+        train_plot(uid_2_vectors[str(uid)][0], uid_2_vectors[str(uid)][1], seq_len, uid)
+        # coins[uid] = ret
         print("\n")
-    coins.pop(1650303)
-    y = [pay_coins[int(len(pay_coins)/4.0 * 3)] for pay_coins in coins.values()]
-    x = range(len(y))
-    plt.plot(x, y,'o-')
-    plt.xticks(x, coins.keys())
-    plt.show()
+    # coins.pop(1650303)
+    # y = [pay_coins[int(len(pay_coins)/4.0 * 3)] for pay_coins in coins.values()]
+    # x = range(len(y))
+    # plt.plot(x, y,'o-')
+    # plt.xticks(x, coins.keys())
+    # plt.boxplot(list(coins.values()), labels = list(coins.keys()), sym = "")
+    # plt.gca().set_xlabel('uid')
+    # plt.gca().set_ylabel('coins')
+    # plt.show()
 
 
 
