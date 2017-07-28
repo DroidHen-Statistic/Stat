@@ -180,6 +180,8 @@ class FeaturePosFormat(Enum):
     WIN_BONUS = 4
     COIN = 5
     LEVEL = 6
+    PAY_IN = 7
+    MACHINE_ID = 8
 
 import csv
 import copy
@@ -188,7 +190,7 @@ from collections import defaultdict
 
 class Log_Parser(object):
     features = ["odds", "is_free", "win_free",
-                "time_delta", "win_bonus", "coin", "level"]
+                "time_delta", "win_bonus", "coin", "level", "pay_in", "machine_id"]
 
     def __init__(self, log_file, sequence_len, out_put_dir):
         self.log_file = log_file
@@ -256,6 +258,7 @@ class Log_Parser(object):
                 if(clear):  # 充值才清空
                     cr_sq.clear()
         self.uid_negtive_seq_len[uid] = 0
+    #    exit() #TODO
 
     def uid_seq_full(self, uid):
         return self.feature_uid_seq[FeaturePosFormat.ODDS.value][uid].full()
@@ -280,7 +283,8 @@ class Log_Parser(object):
         lines = int(line[SpinFormat.LINES.value])
         level = int(line[SpinFormat.LEVEL.value])
 
-        odds = round(win / (bet * lines), 2)
+        pay_in = int(bet * lines)
+        odds = round(win / pay_in, 2)
         if self.uid_negtive_seq_len[uid] >= self.sequence_len:
             # if(self.uid_seq_full(uid)):
             self.out_put_to_files(uid)
@@ -305,6 +309,8 @@ class Log_Parser(object):
             uid].push(win_bonus)
         self.feature_uid_seq[FeaturePosFormat.COIN.value][uid].push(coin)
         self.feature_uid_seq[FeaturePosFormat.LEVEL.value][uid].push(level)
+        self.feature_uid_seq[FeaturePosFormat.PAY_IN.value][uid].push(pay_in)
+        self.feature_uid_seq[FeaturePosFormat.MACHINE_ID.value][uid].push(machine_id)
         self.uid_negtive_seq_len[uid] += 1
         # exit()
 
@@ -345,7 +351,7 @@ class Log_Parser(object):
 if __name__ == '__main__':
     log_file = os.path.join(config.log_base_dir, "after_read")
     # out_file_odds = os.path.join(config.log_result_dir, "odds")
-    parser = Log_Parser(log_file, 10, config.log_result_dir)
+    parser = Log_Parser(log_file, 50, config.log_result_dir)
     # print(parser)
 
     parser.parse_log()
