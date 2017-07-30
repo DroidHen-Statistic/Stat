@@ -96,15 +96,19 @@ class FixedQueueArray(object):
         self.capacity = capacity
         # self.sequence = np.zeros(capacity) - 1
         self.sequence = np.full(capacity, fill_value=np.infty, dtype=float)
+        self.len = 0
         # np.full([3,4], fill_value=sys.maxsize, dtype=float)
 
     def push(self, a):
+        if not self.full():
+            self.len += 1    
         self.sequence = np.roll(self.sequence, -1)
         self.sequence[self.capacity - 1] = a
 
     def pop(self):
         v = self.sequence[self.capacity - 1]
         self.sequence = shift(self.sequence, 1, cval=np.infty)
+        self.len -= 1
         return v
 
     def full(self):
@@ -116,6 +120,7 @@ class FixedQueueArray(object):
     def clear(self):
         self.sequence = np.full(
             self.capacity, fill_value=np.infty, dtype=float)
+        self.len = 0
 
     def update_last(self, v):
         self.sequence[self.capacity - 1] = v
@@ -124,11 +129,29 @@ class FixedQueueArray(object):
         cr_str = ""
         sp = ""
         for v in self.sequence:
-           # print(v)
-            cr_str += (sp + str(v))
-            sp = " "
+            # print(v)
+            if v != np.inf:
+                cr_str += (sp + str(v))
+                sp = " "
+        return cr_str
+
+    def head_str(self, len_):  # 打印前n个
+        cr_str = ""
+        sp = ""
+        start_pos = 0 if len_ > self.len else self.capacity - len_
+        for i in range(start_pos, self.capacity):
+            v = self.sequence[i]
+            if v != np.inf:
+                cr_str += (sp + str(v))
+                sp = " "
         return cr_str
 # test_que = FixedQueueArray(4)
+# test_que.push(1)
+# test_que.push(2)
+# test_que.push(3)
+# str_ = test_que.head_str(2)
+# print(str_)
+# exit()
 # print(test_que)
 # v = test_que.empty()
 # print(v)
@@ -182,23 +205,32 @@ class FeaturePosFormat(Enum):
     LEVEL = 6
     PAY_IN = 7
     MACHINE_ID = 8
+    LINE = 9
 
 import csv
 import copy
 from collections import defaultdict
 
+import shutil
+
 
 class Log_Parser(object):
     features = ["odds", "is_free", "win_free",
-                "time_delta", "win_bonus", "coin", "level", "pay_in", "machine_id"]
+                "time_delta", "win_bonus", "coin", "level", "pay_in", "machine_id", "line"]
 
-    def __init__(self, log_file, sequence_len, out_put_dir):
+    def __init__(self, log_file, out_put_dir, sequence_len, sequence_len_min, time_threshold=600):
         self.log_file = log_file
         self.sequence_len = sequence_len
+        self.sequence_len_min = sequence_len_min  # 序列最短长度
         self.out_put_dir = out_put_dir
+
+        if os.path.exists(out_put_dir):
+            shutil.rmtree(out_put_dir)
+        os.mkdir(out_put_dir)
 
         feature_counts = len(Log_Parser.features)
         self.out_files = np.zeros(feature_counts, dtype=str)
+        self.time_threshold = time_threshold  # 一个序列的时间长度，超过且大于最短序列则强制中断输出
 
         # index = 0
         # for k in Log_Parser.features:
@@ -210,7 +242,9 @@ class Log_Parser(object):
         #     (feature_counts), fill_value=defaultdict(self.FixedQueueFactory))
 
         self.uid_last_spin = defaultdict(int)  # 上次转的时间戳
-        self.uid_negtive_seq_len = defaultdict(int)  # 记录了几个反例充值的序列
+        self.uid_seq_seconds = defaultdict(int)  # 序列累计的时间
+        self.uid_negtive_seq_len = defaultdict(int)  # 当前序列有多长
+        # self.uid_positive_seq_len = defaultdict(int) # 当前记录
 
         self.feature_uid_seq = np.zeros(feature_counts, dtype=defaultdict)
         for i in range(feature_counts):
@@ -235,6 +269,7 @@ class Log_Parser(object):
         show_str += "from file:%s" % self.log_file + "\n"
         show_str += "out put dir:%s" % self.out_put_dir + "\n"
         show_str += "seq len:%s" % self.sequence_len + "\n"
+        show_str += "seq len min:%s" % self.sequence_len_min + "\n"
         # show_str += "ods out file:%s" % self.odds_out_file + "\n"
         # show_str += "is free out files:%s" % self.odds_out_file + "\n"
         return show_str
@@ -253,15 +288,40 @@ class Log_Parser(object):
             # cr_out_file = os.path.join(cr_out_dir, self.get_out_put_file(uid, feature_pos, cr_out_dir))
             cr_out_file = self.get_out_put_file(
                 uid, feature_pos, cr_out_dir, pay)
+            prefix = ""
+            if os.path.isfile(cr_out_file) and os.path.getsize(cr_out_file) > 0:
+                prefix = "\n"
             with open(cr_out_file, "a") as f:
-                f.write(str(cr_sq) + "\n")
-                if(clear):  # 充值才清空
-                    cr_sq.clear()
+                if pay:
+                    f.write(prefix + str(cr_sq))
+                    no_pay_out_file = self.get_out_put_file(
+                        uid, feature_pos, cr_out_dir, 0)
+                    # out_put_len = self.uid
+                    if os.path.isfile(no_pay_out_file) and os.path.getsize(no_pay_out_file) > 0:
+                        with open(no_pay_out_file, "a") as f_no_pay:
+                            f_no_pay.write(" -1")  # 标致上一条非充值的序列无效(和pay存在重叠的可能)
+                else:
+                    f.write(
+                        prefix + cr_sq.head_str(self.uid_negtive_seq_len[uid]))
+            if(clear):  # 充值才清空
+                cr_sq.clear()
+        # if pay:
+        #     self.uid_negtive_seq_len[uid] = 0
+        # else:
+        #     self.uid_positive_seq_len[uid] = 0
         self.uid_negtive_seq_len[uid] = 0
+
+    def clear_uid_seq(self, uid):
+        for feature_pos in range(len(Log_Parser.features)):
+            cr_sq = self.get_seq(uid, feature_pos)
+            cr_sq.clear()
     #    exit() #TODO
 
     def uid_seq_full(self, uid):
         return self.feature_uid_seq[FeaturePosFormat.ODDS.value][uid].full()
+
+    def uid_seq_can_out_put(self, uid):
+        return self.feature_uid_seq[FeaturePosFormat.ODDS.value][uid].len >= self.sequence_len_min
 
     def parse_spin(self, line):
         date_int = int(line[SpinFormat.DATETIME.value])
@@ -285,10 +345,8 @@ class Log_Parser(object):
 
         pay_in = int(bet * lines)
         odds = round(win / pay_in, 2)
-        if self.uid_negtive_seq_len[uid] >= self.sequence_len:
-            # if(self.uid_seq_full(uid)):
-            self.out_put_to_files(uid)
-            # self.uid_negtive_seq_len[uid] = 0
+
+        # self.uid_negtive_seq_len[uid] = 0
 # @unique
 #     class FeaturePosFormat(Enum):
 #         ODDS = 0
@@ -310,20 +368,31 @@ class Log_Parser(object):
         self.feature_uid_seq[FeaturePosFormat.COIN.value][uid].push(coin)
         self.feature_uid_seq[FeaturePosFormat.LEVEL.value][uid].push(level)
         self.feature_uid_seq[FeaturePosFormat.PAY_IN.value][uid].push(pay_in)
-        self.feature_uid_seq[FeaturePosFormat.MACHINE_ID.value][uid].push(machine_id)
+        self.feature_uid_seq[FeaturePosFormat.MACHINE_ID.value][
+            uid].push(machine_id)
+        self.feature_uid_seq[FeaturePosFormat.LINE.value][uid].push(lines)
         self.uid_negtive_seq_len[uid] += 1
+        self.uid_seq_seconds[uid] += seconds_past
+
+        if self.uid_seq_seconds[uid] >= self.time_threshold:
+            if self.uid_negtive_seq_len >= self.sequence_len_min:
+                self.out_put_to_files(uid)
+            else:
+                self.clear_uid_seq(uid)
+        elif self.uid_negtive_seq_len[uid] >= self.sequence_len:
+            self.out_put_to_files(uid)
         # exit()
 
     def parse_login(self, line):
         uid = int(line[LoginFormat.UID.value])
         # if self.uid_negtive_seq_len[uid] >= self.sequence_len:
-        if self.uid_seq_full(uid):
+        if self.uid_seq_can_out_put(uid):
             self.out_put_to_files(uid, clear=1)
             self.uid_last_spin[uid] = 0
 
     def parse_pay(self, line):
         uid = int(line[PurchaseFormat.UID.value])
-        if self.uid_seq_full(uid):
+        if self.uid_seq_can_out_put(uid):
             self.out_put_to_files(uid, pay=1, clear=1)
 
     def parse_play_bonus(self, line):
@@ -351,9 +420,13 @@ class Log_Parser(object):
 if __name__ == '__main__':
     log_file = os.path.join(config.log_base_dir, "after_read")
     # out_file_odds = os.path.join(config.log_result_dir, "odds")
-    parser = Log_Parser(log_file, 50, config.log_result_dir)
+    # seq_len = 50
+    # seq_len_min = 10
+    seq_len = 2
+    seq_len_min = 2
+    parser = Log_Parser(log_file, sequence_len = seq_len, sequence_len_min = seq_len_min, out_put_dir = os.path.join(
+        config.log_result_dir, "slot"))
     # print(parser)
-
     parser.parse_log()
 
     exit()
