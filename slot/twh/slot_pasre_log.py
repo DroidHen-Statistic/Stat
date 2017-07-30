@@ -101,13 +101,19 @@ class FixedQueueArray(object):
 
     def push(self, a):
         if not self.full():
-            self.len += 1    
+            self.len += 1
         self.sequence = np.roll(self.sequence, -1)
         self.sequence[self.capacity - 1] = a
 
     def pop(self):
         v = self.sequence[self.capacity - 1]
-        self.sequence = shift(self.sequence, 1, cval=np.infty)
+        for pos in range(self.capacity - 1, 0, -1):
+            if self.sequence[pos - 1] == np.inf:
+                self.sequence[pos] = np.inf
+                break
+            self.sequence[pos] = self.sequence[pos - 1]
+        # self.sequence = shift(self.sequence, 1, cval=np.infty) # inf
+        # 这样又问题，不能这么用
         self.len -= 1
         return v
 
@@ -135,6 +141,15 @@ class FixedQueueArray(object):
                 sp = " "
         return cr_str
 
+    def get_item(self, pos):
+        return self.sequence[pos]
+
+    def get_tail(self):
+        if self.len == 0:
+            return np.inf
+        else:
+            return self.sequence[self.capacity - self.len]
+
     def head_str(self, len_):  # 打印前n个
         cr_str = ""
         sp = ""
@@ -145,10 +160,73 @@ class FixedQueueArray(object):
                 cr_str += (sp + str(v))
                 sp = " "
         return cr_str
-# test_que = FixedQueueArray(4)
+
+    # def sum(self, start=0, end=-1):
+    #     cr_sum = 0
+    #     start_pos = self.capacity - self.len + start
+    #     end_pos =self.capacity
+    #     if end != -1:
+    #         end_pos = self.capacity - self.len + end
+    #     for i in range(start_pos, end_pos):
+    #         v = self.sequence[i]
+    #         if v != np.inf:
+    #             cr_sum += float(v)
+    #     return cr_sum
+
+    def sum(self, start=0, step=1):  # 从后往前求和
+        cr_sum = 0
+        start_pos = self.capacity - self.len
+        tmp_ = self.sequence[start_pos::]
+        # end_pos =self.capacity
+        # if end != -1:
+        #     end_pos = self.capacity - self.len + end
+        for v in tmp_[start::step]:
+            # v = self.sequence[i]
+            if v != np.inf:
+                cr_sum += float(v)
+        # for i in range(start_pos, end_pos):
+        return cr_sum
+
+    # 返回反向累加和小于等于指定值的起始位置 例子：[1,2,3,4,5]，输入10，返回2，也就是值为3的位置,因为从5+4+3 > 10
+    def min_sum_pos(self, max_sum):
+        cr_sum = 0
+        for pos in range(self.capacity - 1, -1, -1):
+            if self.sequence[pos] == np.inf:
+                break
+            cr_sum += float(self.sequence[pos])
+            if cr_sum > max_sum:
+                break
+        return pos
+
+    def clear_til_pos(self, max_pos):
+        for pos in range(0, max_pos):
+            self.sequence[pos] = np.inf
+        self.len = 0
+        for pos in range(max_pos, self.capacity):
+            if self.sequence[pos] != np.inf:
+                self.len = self.capacity - pos
+                break
+# test_que = FixedQueueArray(10)
+# print(test_que.sum())
 # test_que.push(1)
 # test_que.push(2)
 # test_que.push(3)
+# print(test_que.get_tail())
+# test_que.push(4)
+# # print(test_que.get_tail())
+# test_que.push(5)
+# test_que.push(6)
+# print(str(test_que))
+# print(test_que.sum())
+# print(test_que.sum(start = 4))
+# test_que.pop()
+# print(str(test_que))
+# print(test_que.sum())
+# print(str(test_que))
+# a = test_que.min_sum_pos(10)
+# print(a)
+# test_que.clear_til_pos(a)
+# print(str(test_que))
 # str_ = test_que.head_str(2)
 # print(str_)
 # exit()
@@ -217,8 +295,9 @@ import shutil
 class Log_Parser(object):
     features = ["odds", "is_free", "win_free",
                 "time_delta", "win_bonus", "coin", "level", "pay_in", "machine_id", "line"]
+    time_pos = 3
 
-    def __init__(self, log_file, out_put_dir, sequence_len, sequence_len_min, time_threshold=600):
+    def __init__(self, log_file, out_put_dir, sequence_len=10, sequence_len_min=50, time_threshold=600):
         self.log_file = log_file
         self.sequence_len = sequence_len
         self.sequence_len_min = sequence_len_min  # 序列最短长度
@@ -276,6 +355,26 @@ class Log_Parser(object):
 
     def FixedQueueFactory(self):
         return copy.deepcopy(FixedQueueArray(self.sequence_len))
+
+    def clear_seq_by_time(self, uid):
+        time_seq = self.get_seq(uid, Log_Parser.time_pos)
+        min_pos = time_seq.min_sum_pos(self.time_threshold)  # 找到总和刚好大于阈值的时间序列
+        for feature_pos in range(len(Log_Parser.features)):
+            cr_sq = self.get_seq(uid, feature_pos)
+            cr_sq.clear_til_pos(min_pos)  # time记录的是和上一场的时间差，刚好大于满足要求
+
+    def get_seq_time(self, uid, only_negtive):  # 当前序列的时间长度, 付费是看全部的，不付费的只是一部分
+        time_seq = self.get_seq(uid, Log_Parser.time_pos)
+        start_pos = 1
+        if (time_seq.empty()):
+            return 0
+        else:
+            start_pos = 1
+            if only_negtive:
+                start_pos = -self.uid_negtive_seq_len[uid] + 1 # 减掉最开始的值，那是和再前面的差
+                if start_pos == 0:
+                    return 0
+            return time_seq.sum(start_pos)
 
     def out_put_to_files(self, uid, pay=0, clear=0):
         # 输出到文件
@@ -356,6 +455,15 @@ class Log_Parser(object):
 #         WIN_BONUS = 4
 #         COIN = 5
 #         LEVEL = 6
+        # 先看加上这次会不会超时，这只是负样本部分，因为整个seq里只有前面一部分是负样本
+        new_last_negetive_time = self.get_seq_time(
+            uid, only_negtive=True) + seconds_past
+        if new_last_negetive_time >= self.time_threshold:  # 超时了，看能不能输出前面的
+            if self.uid_negtive_seq_len[uid] >= self.sequence_len_min:
+                self.out_put_to_files(uid)
+            else:
+                self.uid_seq_seconds[uid] = 0
+
         self.feature_uid_seq[FeaturePosFormat.ODDS.value][uid].push(odds)
         self.feature_uid_seq[FeaturePosFormat.USE_FREE.value][
             uid].push(use_free)
@@ -374,12 +482,18 @@ class Log_Parser(object):
         self.uid_negtive_seq_len[uid] += 1
         self.uid_seq_seconds[uid] += seconds_past
 
-        if self.uid_seq_seconds[uid] >= self.time_threshold:
-            if self.uid_negtive_seq_len >= self.sequence_len_min:
-                self.out_put_to_files(uid)
-            else:
-                self.clear_uid_seq(uid)
-        elif self.uid_negtive_seq_len[uid] >= self.sequence_len:
+        new_last_time = self.get_seq_time(
+            uid, only_negtive=False)  # 要保证整个序列不超过阈值
+        if new_last_time >= self.time_threshold:  # 时间超过，按时间更新队列
+            self.clear_seq_by_time(uid)
+
+        # if self.uid_seq_seconds[uid] >= self.time_threshold:
+        #     if self.uid_negtive_seq_len >= self.sequence_len_min:
+        #         self.out_put_to_files(uid)
+        #     else:
+        #         self.clear_uid_seq(uid)
+        # el
+        if self.uid_negtive_seq_len[uid] >= self.sequence_len:
             self.out_put_to_files(uid)
         # exit()
 
@@ -388,12 +502,17 @@ class Log_Parser(object):
         # if self.uid_negtive_seq_len[uid] >= self.sequence_len:
         if self.uid_seq_can_out_put(uid):
             self.out_put_to_files(uid, clear=1)
-            self.uid_last_spin[uid] = 0
+        else:
+            self.clear_uid_seq(uid)
+        self.uid_last_spin[uid] = 0
 
     def parse_pay(self, line):
         uid = int(line[PurchaseFormat.UID.value])
         if self.uid_seq_can_out_put(uid):
             self.out_put_to_files(uid, pay=1, clear=1)
+        else:
+            self.clear_uid_seq(uid)
+        self.uid_last_spin[uid] = 0
 
     def parse_play_bonus(self, line):
         uid = int(line[PurchaseFormat.UID.value])
@@ -422,10 +541,10 @@ if __name__ == '__main__':
     # out_file_odds = os.path.join(config.log_result_dir, "odds")
     # seq_len = 50
     # seq_len_min = 10
-    seq_len = 2
-    seq_len_min = 2
-    parser = Log_Parser(log_file, sequence_len = seq_len, sequence_len_min = seq_len_min, out_put_dir = os.path.join(
-        config.log_result_dir, "slot"))
+    seq_len = 50
+    seq_len_min = 10
+    parser = Log_Parser(log_file, sequence_len=seq_len, sequence_len_min=seq_len_min, out_put_dir=os.path.join(
+        config.log_result_dir, "slot"), time_threshold=600)
     # print(parser)
     parser.parse_log()
 
