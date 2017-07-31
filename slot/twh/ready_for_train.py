@@ -113,9 +113,14 @@ def process_data(data):
 
     return stat_info
 
+def read_user_data_custom(file_dir, seq_len, max_len):
+    """
+    自定义向量读取，每次要改改这里
+    """
+    data = [[], []] # 正例向量集合，负例向量集合
+    return data
+
 # 读玩家数据
-
-
 def read_user_data(file_dir, seq_len, max_len):
     """
     max_len : 原始文件的最大序列长度，目前是10
