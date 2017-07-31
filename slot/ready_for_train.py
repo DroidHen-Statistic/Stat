@@ -27,13 +27,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 import csv
 
-head_path = os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__))))
-# print(head_path)
-sys.path.append(os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__)))))
-
 import config
+from twh.ready_for_train import *
 # PreVectorFormat = Enum('PreVectorFormat', 'last_coin bonus_coin win_free ')
 # a = PreVectorFormat.last_coin.value
 # print(a)
@@ -43,91 +38,91 @@ import config
 # 格式： last_coin bonus_coin total_time odds(seq_len)
 # 读玩家数据
 
-def read_user_data(file_dir, seq_len, max_len):
-    """
-    max_len : 原始文件的最大序列长度，目前是10
-    """
-    # 只读有充值记录的
-    pay_file = os.path.join(file_dir, "pay_odds.txt")
-    if (not os.path.exists(pay_file)):
-        return []
+# def read_user_data(file_dir, seq_len, max_len):
+#     """
+#     max_len : 原始文件的最大序列长度，目前是10
+#     """
+#     # 只读有充值记录的
+#     pay_file = os.path.join(file_dir, "pay_odds.txt")
+#     if (not os.path.exists(pay_file)):
+#         return []
 
 
-    data = []
-    label = []
-    for file_type in range(2):
-        pre_fix = ""
-        if file_type == 1:
-            pre_fix = 'pay_'
-        file_odds = os.path.join(file_dir, pre_fix + "odds.txt")
-        f_odds = open(file_odds, 'r')
+#     data = []
+#     label = []
+#     for file_type in range(2):
+#         pre_fix = ""
+#         if file_type == 1:
+#             pre_fix = 'pay_'
+#         file_odds = os.path.join(file_dir, pre_fix + "odds.txt")
+#         f_odds = open(file_odds, 'r')
 
-        file_coin = os.path.join(file_dir, pre_fix + "coin.txt")
-        f_coin = open(file_coin, 'r')
+#         file_coin = os.path.join(file_dir, pre_fix + "coin.txt")
+#         f_coin = open(file_coin, 'r')
 
-        file_bonus = os.path.join(file_dir, pre_fix + "win_bonus.txt")
-        f_bonus = open(file_bonus, 'r')
+#         file_bonus = os.path.join(file_dir, pre_fix + "win_bonus.txt")
+#         f_bonus = open(file_bonus, 'r')
 
-        file_time = os.path.join(file_dir, pre_fix + "time_delta.txt")
-        f_time = open(file_time, 'r')
-        while True:
-            line = f_coin.readline()
-            if not line:
-                break
-            # line = line.relace("\n",'')
-            line = line.strip()
-            if len(line) < seq_len:
-                break
-            # cr_data = np.zeros(3 + seq_len)
-            cr_data = [0] * (5 + seq_len)
+#         file_time = os.path.join(file_dir, pre_fix + "time_delta.txt")
+#         f_time = open(file_time, 'r')
+#         while True:
+#             line = f_coin.readline()
+#             if not line:
+#                 break
+#             # line = line.relace("\n",'')
+#             line = line.strip()
+#             if len(line) < seq_len:
+#                 break
+#             # cr_data = np.zeros(3 + seq_len)
+#             cr_data = [0] * (5 + seq_len)
 
-            # 前后的金币差
-            line = line.split(" ")
-            cr_data[0] = float(line[0]) - float(line[-1])
-            # if file_type == 0 and float(line[-1]) > 1015784:  
-            #     continue
-            cr_data[1] = float(line[-1])
+#             # 前后的金币差
+#             line = line.split(" ")
+#             cr_data[0] = float(line[0]) - float(line[-1])
+#             # if file_type == 0 and float(line[-1]) > 1015784:  
+#             #     continue
+#             cr_data[1] = float(line[-1])
 
 
-            line = f_odds.readline().strip()
-            line = list(map(float, line.split(" ")))
+#             line = f_odds.readline().strip()
+#             line = list(map(float, line.split(" ")))
 
-            odds_std = np.std(line)
-            cr_data[2] = odds_std
-            cr_data[3] = np.average(line)
+#             odds_std = np.std(line)
+#             cr_data[2] = odds_std
+#             cr_data[3] = np.average(line)
 
-            line = f_bonus.readline().strip()
-            line = list(map(float, line.split(" ")[max_len - seq_len::]))
-            cr_data[4] = float(np.sum(line[::-1]))
+#             line = f_bonus.readline().strip()
+#             line = list(map(float, line.split(" ")[max_len - seq_len::]))
+#             cr_data[4] = float(np.sum(line[::-1]))
 
-            # line = f_time.readline().strip()
-            # line = list(map(float, line.split(" ")[max_len - seq_len::]))
-            # cr_data[4] = float(np.sum(line))
+#             # line = f_time.readline().strip()
+#             # line = list(map(float, line.split(" ")[max_len - seq_len::]))
+#             # cr_data[4] = float(np.sum(line))
             
-            for i in range(seq_len):
-                cr_data[5 + i] = float(line[max_len - seq_len + i])
+#             for i in range(seq_len):
+#                 cr_data[5 + i] = float(line[max_len - seq_len + i])
                 
 
-            # cr_data = np.hstack((cr_data[0],cr_data[2:]))
-            # cr_data = [cr_data[1]]
-            # print(cr_data)
-            data.append(cr_data)
-            label.append(file_type)
+#             # cr_data = np.hstack((cr_data[0],cr_data[2:]))
+#             # cr_data = [cr_data[1]]
+#             # print(cr_data)
+#             data.append(cr_data)
+#             label.append(file_type)
         
-        # print(data[0:2])
-        f_bonus.close()
-        f_coin.close()
-        f_odds.close()
-        f_time.close()
+#         # print(data[0:2])
+#         f_bonus.close()
+#         f_coin.close()
+#         f_odds.close()
+#         f_time.close()
 
 
-    pay_count = np.sum(label)
-    if pay_count < 10:
-        return []
-    if(pay_count / len(label) < 0.09):
-        data = data[-pay_count * 11:]
-        label = label[-pay_count * 11:]
-    return [data, label]
+#     pay_count = np.sum(label)
+#     if pay_count < 10:
+#         return []
+#     if(pay_count / len(label) < 0.09):
+#         data = data[-pay_count * 11:]
+#         label = label[-pay_count * 11:]
+#     return [data, label]
 
 def gen_uid_vector(seq_len, max_len):
     base_dir = os.path.join(config.log_base_dir, "result")
@@ -140,7 +135,7 @@ def gen_uid_vector(seq_len, max_len):
         user_dir = os.path.join(base_dir, cr_uid)
         if not os.path.isdir(user_dir):
             continue
-        ret = read_user_data(user_dir, seq_len, max_len)
+        ret = read_user_data_custom(user_dir, seq_len, max_len)
         if len(ret) > 0:
             uid_2_vectors[cr_uid] = ret
     return uid_2_vectors
@@ -367,10 +362,16 @@ def train(x, y):
         print('Test accuracy: %.3f pay_count: %d recall: %d' % (pipe_lr.score(x_test, y_test), pay_count, recall))
 
 if __name__ == '__main__':
+
+    from scipy import stats
+    # from scipy.stat import skew
     file_names = ['coin', 'is_free', 'level', 'odds',
-              'time_delta', 'win_bonus', 'win_free']
+                  'time_delta', 'win_bonus', 'win_free']
     seq_len = 10
-    max_len = 10
+    max_len = 50
+
+    # mean_time = calc_len_times(seq_len, max_len)
+    # exit()
     uid_2_vectors = gen_uid_vector(seq_len, max_len)
     uids = [1560678,1650303,1662611,1673914,1674926,1675766]
     # for uid, vectors in uid_2_vectors.items():
