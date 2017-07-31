@@ -441,7 +441,9 @@ class Log_Parser(object):
         bet = int(line[SpinFormat.BET.value])
         lines = int(line[SpinFormat.LINES.value])
         level = int(line[SpinFormat.LEVEL.value])
-
+        if lines == 0 or bet == 0:
+            print("lines or bet is zero in spin datetime:%d uid:%d " %(date_int, uid))
+            return
         pay_in = int(bet * lines)
         odds = round(win / pay_in, 2)
 
