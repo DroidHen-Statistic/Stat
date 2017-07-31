@@ -441,7 +441,9 @@ class Log_Parser(object):
         bet = int(line[SpinFormat.BET.value])
         lines = int(line[SpinFormat.LINES.value])
         level = int(line[SpinFormat.LEVEL.value])
-
+        if lines == 0 or bet == 0:
+            print("lines or bet is zero in spin datetime:%d uid:%d " %(date_int, uid))
+            return
         pay_in = int(bet * lines)
         odds = round(win / pay_in, 2)
 
@@ -526,7 +528,7 @@ class Log_Parser(object):
         with open(log_file, 'r') as f:
             reader = csv.reader(f, delimiter=" ")
             for line in reader:
-                if "" in line:
+                if "" in line[:-1]:
                     continue
                 data_type = int(line[0])
                 if data_type == ActionType.LOGIN.value:

@@ -117,9 +117,6 @@ def read_user_data_custom(file_dir, seq_len, max_len):
     """
     自定义向量读取，每次要改改这里
     """
-    pay_file = os.path.join(file_dir, "pay_odds.txt")
-     if (not os.path.exists(pay_file)):
-        return []
     data = [[], []] # 正例向量集合，负例向量集合
     return data
 
