@@ -20,6 +20,9 @@ import config
 
 
 def calc_len_times(seq_len, max_len):
+    """
+    计算转盘平均时长，区分pay和nopay
+    """
     base_dir = os.path.join(config.log_base_dir, "result")
     # base_dir = r"E:\codes\GitHubs\slot\result"
     dir_list = os.listdir(base_dir)
@@ -47,6 +50,7 @@ def calc_len_times(seq_len, max_len):
 
 def _do_calc_len_times(file_dir, seq_len, max_len):
     """
+    一个玩家转盘的平均时长，分pay和no pay
     max_len : 原始文件的最大序列长度，目前是10
     """
     # 充值记录
