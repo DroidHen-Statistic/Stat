@@ -20,6 +20,9 @@ import config
 
 
 def calc_len_times(seq_len, max_len):
+    """
+    计算转盘平均时长，区分pay和nopay
+    """
     base_dir = os.path.join(config.log_base_dir, "result")
     # base_dir = r"E:\codes\GitHubs\slot\result"
     dir_list = os.listdir(base_dir)
@@ -47,9 +50,10 @@ def calc_len_times(seq_len, max_len):
 
 def _do_calc_len_times(file_dir, seq_len, max_len):
     """
+    一个玩家转盘的平均时长，分pay和no pay
     max_len : 原始文件的最大序列长度，目前是10
     """
-    # 只读有充值记录的
+    # 充值记录
     pay_file = os.path.join(file_dir, "pay_odds.txt")
     # if (not os.path.exists(pay_file)):
     #     return []
@@ -109,9 +113,14 @@ def process_data(data):
 
     return stat_info
 
+def read_user_data_custom(file_dir, seq_len, max_len):
+    """
+    自定义向量读取，每次要改改这里
+    """
+    data = [[], []] # 正例向量集合，负例向量集合
+    return data
+
 # 读玩家数据
-
-
 def read_user_data(file_dir, seq_len, max_len):
     """
     max_len : 原始文件的最大序列长度，目前是10
@@ -145,11 +154,11 @@ def read_user_data(file_dir, seq_len, max_len):
 
         while True:
             line = f_odds.readline().strip()
-            if len(line) < seq_len:
-                break
             # cr_data = np.zeros(3 + seq_len)
-            cr_data = np.zeros(seq_len)
             line = line.split(" ")
+            if len(line) < seq_len or line[-1] == "-1": # 被抛掉的数据
+                break
+            cr_data = np.zeros(seq_len)
             for i in range(seq_len):
                 # cr_data[3 + i] = float(line[max_len - seq_len + i])
                 cr_data[i] = float(line[max_len - seq_len + i])
