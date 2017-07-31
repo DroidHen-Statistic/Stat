@@ -28,7 +28,6 @@ function str_to_datetime(year, month, day, time){
 #   purchase datetime uid
 #   play_bonus datetime uid machine_id total_win coin
 
-
     if($0 ~ /u'cmd':\s*u'login'/){ 
        # printf "login "
         printf "1 "
