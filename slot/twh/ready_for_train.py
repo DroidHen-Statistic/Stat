@@ -49,7 +49,7 @@ def _do_calc_len_times(file_dir, seq_len, max_len):
     """
     max_len : 原始文件的最大序列长度，目前是10
     """
-    # 只读有充值记录的
+    # 充值记录
     pay_file = os.path.join(file_dir, "pay_odds.txt")
     # if (not os.path.exists(pay_file)):
     #     return []
@@ -145,11 +145,11 @@ def read_user_data(file_dir, seq_len, max_len):
 
         while True:
             line = f_odds.readline().strip()
-            if len(line) < seq_len:
-                break
             # cr_data = np.zeros(3 + seq_len)
-            cr_data = np.zeros(seq_len)
             line = line.split(" ")
+            if len(line) < seq_len or line[-1] == "-1": # 被抛掉的数据
+                break
+            cr_data = np.zeros(seq_len)
             for i in range(seq_len):
                 # cr_data[3 + i] = float(line[max_len - seq_len + i])
                 cr_data[i] = float(line[max_len - seq_len + i])
