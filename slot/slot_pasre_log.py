@@ -526,7 +526,7 @@ class Log_Parser(object):
         with open(log_file, 'r') as f:
             reader = csv.reader(f, delimiter=" ")
             for line in reader:
-                if "" in line:
+                if "" in line[:-1]:
                     continue
                 data_type = int(line[0])
                 if data_type == ActionType.LOGIN.value:
