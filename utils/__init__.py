@@ -5,4 +5,4 @@ import config
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-__all__ = ["date_util","file_util","other_util","db_util"]
+__all__ = ["date_util","file_util","other_util","db_util", "entropy_util"]
