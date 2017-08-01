@@ -1,0 +1,8 @@
+nohup: ignoring input
+/home/wja/stat/Stat
+Traceback (most recent call last):
+  File "slot_pasre_log.py", line 351, in <module>
+    parser.parse_log()
+  File "slot_pasre_log.py", line 331, in parse_log
+    with open(log_file, 'r') as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/wja/log/stat/after_read.txt'

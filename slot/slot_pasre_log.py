@@ -530,16 +530,24 @@ class Log_Parser(object):
         if self.uid_seq_can_out_put(uid):
             self.out_put_to_files(uid, clear=1)
         else:
-            self.clear_uid_seq(uid)
-        self.uid_last_spin[uid] = 0
+            #self.clear_uid_seq(uid)
+            self.uid_negtive_seq_len[uid] = 0
+        # self.uid_last_spin[uid] = 0
 
     def parse_pay(self, line):
         uid = int(line[PurchaseFormat.UID.value])
+        date_int = int(line[PurchaseFormat.DATETIME.value])
+
+        timestamp = date_util.int_to_timestamp(date_int)
+        last_timestamp = self.uid_last_spin[uid]
+        seconds_past = 0 if last_timestamp == 0 else timestamp - last_timestamp
+        
         if self.uid_seq_can_out_put(uid):
             self.out_put_to_files(uid, pay=1, clear=1)
         else:
             type= "drop_pay"
             info = " ".join(map(str, line))
+            info += (" seconds_past: " + str(seconds_past))
             self.out_put_warning(uid, type, info)
             self.clear_uid_seq(uid)
         self.uid_last_spin[uid] = 0
@@ -569,7 +577,7 @@ class Log_Parser(object):
         # exit()
 
 if __name__ == '__main__':
-    log_file = os.path.join(config.log_base_dir, "1451260.log")
+    log_file = os.path.join(config.log_base_dir, "after_read_pay")
     # out_file_odds = os.path.join(config.log_result_dir, "odds")
     # seq_len = 50
     # seq_len_min = 10
