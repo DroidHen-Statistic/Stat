@@ -371,10 +371,33 @@ class Log_Parser(object):
         else:
             start_pos = 1
             if only_negtive:
-                start_pos = -self.uid_negtive_seq_len[uid] + 1 # 减掉最开始的值，那是和再前面的差
+                # 减掉最开始的值，那是和再前面的差
+                start_pos = -self.uid_negtive_seq_len[uid] + 1
                 if start_pos == 0:
                     return 0
             return time_seq.sum(start_pos)
+
+    def out_put_warning(self, uid, type, cr_line):
+        # base_file = str(type)
+        cr_out_dir = os.path.join(self.out_put_dir, '__waring__')
+        cr_out_dir = os.path.join(cr_out_dir, str(type))
+        cr_out_dir = os.path.join(cr_out_dir, str(uid))
+        file_util.check_and_mk_dir(cr_out_dir)
+        cr_line_file = os.path.join(cr_out_dir, "_raw_log.txt" )
+        with open(cr_line_file, 'a') as f:
+            # f.write(srt(type) + ":\n" + cr_line + "\n")
+            f.write(cr_line + "\n")
+        for feature_pos in range(len(Log_Parser.features)):
+            cr_sq = self.get_seq(uid, feature_pos)
+            vector = str(cr_sq)
+            if not vector:
+                vector = "-1"
+            cr_out_file = os.path.join(cr_out_dir, str(Log_Parser.features[feature_pos]) + ".txt" )
+            prefix=""
+            if os.path.isfile(cr_out_file) and os.path.getsize(cr_out_file) > 0:
+                prefix = "\n"
+            with open(cr_out_file, "a") as f:
+                f.write(prefix + vector)
 
     def out_put_to_files(self, uid, pay=0, clear=0):
         # 输出到文件
@@ -442,7 +465,8 @@ class Log_Parser(object):
         lines = int(line[SpinFormat.LINES.value])
         level = int(line[SpinFormat.LEVEL.value])
         if lines == 0 or bet == 0:
-            print("lines or bet is zero in spin datetime:%d uid:%d " %(date_int, uid))
+            print("lines or bet is zero in spin datetime:%d uid:%d " %
+                  (date_int, uid))
             return
         pay_in = int(bet * lines)
         odds = round(win / pay_in, 2)
@@ -514,6 +538,9 @@ class Log_Parser(object):
         if self.uid_seq_can_out_put(uid):
             self.out_put_to_files(uid, pay=1, clear=1)
         else:
+            type= "drop_pay"
+            info = " ".join(map(str, line))
+            self.out_put_warning(uid, type, info)
             self.clear_uid_seq(uid)
         self.uid_last_spin[uid] = 0
 
