@@ -44,26 +44,16 @@ def train_plot(x, y, seq_len, uid):
     x_train = x_test = x
     y_train = y_test = y
 
-   
-
-    # print([x_[1] for x_ in x[-pay_count:]])
-    # print(np.mean([x_[1] for x_ in x[-pay_count:]]))
-    # plt.plot([x_[1] for x_ in x[-pay_count:]],'b-o')
-    # plt.show()
-    # plt.cla()
-
+    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5, class_weight = "balanced"),
+        "RF":RandomForestClassifier(max_depth = 5),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier(),"Bayes":GaussianNB()}
     
-
-    # clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5, class_weight = "balanced"),
-    #     "RF":RandomForestClassifier(max_depth = 5),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier(),"Bayes":GaussianNB()}
-    
-    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5)} 
+    # clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5)} 
     # f = open("E://python//stat//slot//accuracy//accuracy_" + str(uid) + ".csv", 'a',newline = '')
     # writer = csv.writer(f)
     # writer.writerow([uid, pay_count])
     # writer.writerow(["", "cross_accuracy", "cross_recall", "cross_precision", "accuracy", "recall", "precision"])   
     for name, clf in clfs.items():
-        # print("------%s-------" % name)
+        print("------%s-------" % name)
         pipe_lr = Pipeline([('clf', clf)])
 
         cross_accuracy = np.mean(cross_val_score(clf, x_train,
@@ -74,8 +64,8 @@ def train_plot(x, y, seq_len, uid):
                                 y_train, scoring="precision", cv=5))
         # roc_auc = np.mean(cross_val_score(clf, x_train,
         #                         y_train, scoring="roc_auc", cv=5))
-        # f1 = np.mean(cross_val_score(clf, x_train,
-        #                         y_train, scoring="f1", cv=5))
+        f1 = np.mean(cross_val_score(clf, x_train,
+                                y_train, scoring="f1", cv=5))
         print("cross_validation accuracy:%f recall: %f, precision %f" %(cross_accuracy, cross_recall, cross_precision))
     
         pipe_lr.fit(x_train, y_train)
@@ -94,6 +84,7 @@ def train_plot(x, y, seq_len, uid):
         recall = float(positive_true/pay_count)
         precision = positive_true/np.sum(y_predict)
         accuracy = (positive_true + negative_true)/len(y_predict)
+        
         print('Test accuracy: %.3f pay_count: %d recall: %d' % (pipe_lr.score(x_test, y_test), pay_count, recall))
         # writer.writerow([name, cross_accuracy, cross_recall, cross_precision, accuracy, recall, precision])
 
@@ -108,11 +99,11 @@ def train_plot(x, y, seq_len, uid):
     # # 
     # 
     
-    with open(os.path.join(path,"test.dot"), 'w') as f:
-        f = tree.export_graphviz(clf, out_file=f)
-    dot_data = tree.export_graphviz(clf, out_file=None)
-    graph = pydotplus.graph_from_dot_data(dot_data) 
-    graph.write_pdf(os.path.join(path,"tree.pdf"))
+    # with open(os.path.join(path,"test.dot"), 'w') as f:
+    #     f = tree.export_graphviz(clf, out_file=f)
+    # dot_data = tree.export_graphviz(clf, out_file=None)
+    # graph = pydotplus.graph_from_dot_data(dot_data) 
+    # graph.write_pdf(os.path.join(path,"tree.pdf"))
 
 def plot_coins(x, y, seq_len, uid):
     pay_count = np.sum(y)
@@ -267,23 +258,27 @@ if __name__ == '__main__':
     # mean_time = calc_len_times(seq_len, max_len)
     # exit()
     uid_2_vectors = gen_uid_vector(seq_len, max_len)
-    uids = [1560678,1650303,1662611,1673914,1674926,1675766]
-    # for uid, vectors in uid_2_vectors.items():
-    #     print("--------",uid,"--------------")
-    # # X = np.array(sum([x[0] for x in uid_2_vectors.values()],[]))
-    # # Y = np.array(sum([x[1] for x in uid_2_vectors.values()],[]))
-    #     train(vectors[0], vectors[1])
-    coins = {}
-    for uid in uids:
-        print("uid: %d" %uid)
-        data_pay = uid_2_vectors[str(uid)][1]
-        data_not_pay = uid_2_vectors[str(uid)][0]
+    for uid, vectors in uid_2_vectors.items():
+        print("--------",uid,"--------------")
+        data_pay = vectors[1]
+        data_not_pay = vectors[0]
         x = np.array(data_pay + data_not_pay)
         y = np.array([1] * len(data_pay) + [0] * len(data_not_pay))
         # plot_time(uid_2_vectors[str(uid)][0], uid_2_vectors[str(uid)][1], seq_len, uid)
-        train_plot(x, y)
-        # coins[uid] = ret
+        train_plot(x, y, seq_len, uid)
         print("\n")
+        # coins[uid] = ret
+    # coins = {}
+    # for uid in uids:
+    #     print("uid: %d" %uid)
+    #     data_pay = uid_2_vectors[str(uid)][1]
+    #     data_not_pay = uid_2_vectors[str(uid)][0]
+    #     x = np.array(data_pay + data_not_pay)
+    #     y = np.array([1] * len(data_pay) + [0] * len(data_not_pay))
+    #     # plot_time(uid_2_vectors[str(uid)][0], uid_2_vectors[str(uid)][1], seq_len, uid)
+    #     train_plot(x, y, seq_len, uid)
+    #     # coins[uid] = ret
+    #     print("\n")
     # coins.pop(1650303)
     # y = [pay_coins[int(len(pay_coins)/4.0 * 3)] for pay_coins in coins.values()]
     # x = range(len(y))

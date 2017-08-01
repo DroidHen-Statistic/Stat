@@ -534,9 +534,19 @@ class Log_Parser(object):
         self.uid_last_spin[uid] = 0
 
     def parse_pay(self, line):
+        date_int = int(line[PurchaseFormat.DATETIME.value])
         uid = int(line[PurchaseFormat.UID.value])
+
+        timestamp = date_util.int_to_timestamp(date_int)
+        last_timestamp = self.uid_last_spin[uid]
+        seconds_past = 0 if last_timestamp == 0 else timestamp - last_timestamp
+
         if self.uid_seq_can_out_put(uid):
             self.out_put_to_files(uid, pay=1, clear=1)
+            cr_out_dir = os.path.join(self.out_put_dir, str(uid))
+            with open(os.path.join(cr_out_dir, "pay_seconds_past.txt",'a')) as f:
+                f.write(seconds_past)
+                f.write("\n")
         else:
             type= "drop_pay"
             info = " ".join(map(str, line))
