@@ -31,7 +31,7 @@ import config
 from twh.ready_for_train import *
 
 
-def train_plot(x, y, seq_len, uid):
+def train(x, y, seq_len, uid):
     scaler = StandardScaler()
     # x = scaler.fit_transform(x)
     
@@ -48,10 +48,6 @@ def train_plot(x, y, seq_len, uid):
         "RF":RandomForestClassifier(max_depth = 5),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier(),"Bayes":GaussianNB()}
     
     # clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5)} 
-    # f = open("E://python//stat//slot//accuracy//accuracy_" + str(uid) + ".csv", 'a',newline = '')
-    # writer = csv.writer(f)
-    # writer.writerow([uid, pay_count])
-    # writer.writerow(["", "cross_accuracy", "cross_recall", "cross_precision", "accuracy", "recall", "precision"])   
     for name, clf in clfs.items():
         print("------%s-------" % name)
         pipe_lr = Pipeline([('clf', clf)])
@@ -86,18 +82,8 @@ def train_plot(x, y, seq_len, uid):
         accuracy = (positive_true + negative_true)/len(y_predict)
         
         print('Test accuracy: %.3f pay_count: %d recall: %d' % (pipe_lr.score(x_test, y_test), pay_count, recall))
-        # writer.writerow([name, cross_accuracy, cross_recall, cross_precision, accuracy, recall, precision])
 
-    # f.close()
 
-    # print(y_predict)
-    # print("recall: %f" %(recall/np.sum(y_test)))
-    # print("positive ratio: ", np.sum(y_train)/len(y_train))
-    # print("percision: ", clf.score(x_test, y_test))
-    # # print(clf.predict(x_test))
-    # # print(y_test)
-    # # 
-    # 
     
     # with open(os.path.join(path,"test.dot"), 'w') as f:
     #     f = tree.export_graphviz(clf, out_file=f)
@@ -206,45 +192,10 @@ def plot_odds(x, y, seq_len, uid):
     plt.savefig(os.path.join(path, "odds_var"))
     plt.cla()
 
-def train(x, y):
-    scaler = StandardScaler()
-    x = scaler.fit_transform(x)
-    
-    # x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1, random_state=42)
-    # print(y_test)
-    x_train = x_test = x
-    y_train = y_test = y
+def corelation(x,y):
+    score, p_value = other_util.mul_pearson(x,y)
+    return score
 
-    # tmp = [x_[0] for x_ in x[-31:]]
-    # print(np.mean(tmp))
-    
-
-    # clfs = [tree.DecisionTreeClassifier(max_depth = 5),
-        # RandomForestClassifier(max_depth = 5),ExtraTreesClassifier(),AdaBoostClassifier(),GradientBoostingClassifier(),GaussianNB()]
-    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5),
-        "RF":RandomForestClassifier(max_depth = 5),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier(),"Bayes":GaussianNB()}
-    for name, clf in clfs.items():
-        print("------%s-------" % name)
-        pipe_lr = Pipeline([('clf', clf)])
-
-        # recall = np.mean(cross_val_score(clf, x_train,
-                                # y_train, scoring="recall", cv=5))
-        # precision = np.mean(cross_val_score(clf, x_train,
-        #                         y_train, scoring="precision", cv=5))
-        # roc_auc = np.mean(cross_val_score(clf, x_train,
-        #                         y_train, scoring="roc_auc", cv=5))
-        # f1 = np.mean(cross_val_score(clf, x_train,
-        #                         y_train, scoring="f1", cv=5))
-        # print(recall, precision, roc_auc)
-        pipe_lr.fit(x_train, y_train)
-        y_predict = pipe_lr.predict(x_test)
-        pay_count = np.sum(y_test)
-        # print(pay_count)
-        recall = 0
-        for i in range(len(y_test)):
-            if y_test[i] == 1 and y_predict[i] == 1:
-                recall += 1
-        print('Test accuracy: %.3f pay_count: %d recall: %d' % (pipe_lr.score(x_test, y_test), pay_count, recall))
 
 if __name__ == '__main__':
 
@@ -257,41 +208,25 @@ if __name__ == '__main__':
 
     # mean_time = calc_len_times(seq_len, max_len)
     # exit()
+    x = []
+    y = []
     uid_2_vectors = gen_uid_vector(seq_len, max_len)
     for uid, vectors in uid_2_vectors.items():
         print("--------",uid,"--------------")
         data_pay = vectors[1]
         data_not_pay = vectors[0]
-        x = np.array(data_pay + data_not_pay)
-        y = np.array([1] * len(data_pay) + [0] * len(data_not_pay))
-        # plot_time(uid_2_vectors[str(uid)][0], uid_2_vectors[str(uid)][1], seq_len, uid)
-        train_plot(x, y, seq_len, uid)
-        print("\n")
-        # coins[uid] = ret
-    # coins = {}
-    # for uid in uids:
-    #     print("uid: %d" %uid)
-    #     data_pay = uid_2_vectors[str(uid)][1]
-    #     data_not_pay = uid_2_vectors[str(uid)][0]
-    #     x = np.array(data_pay + data_not_pay)
-    #     y = np.array([1] * len(data_pay) + [0] * len(data_not_pay))
-    #     # plot_time(uid_2_vectors[str(uid)][0], uid_2_vectors[str(uid)][1], seq_len, uid)
-    #     train_plot(x, y, seq_len, uid)
-    #     # coins[uid] = ret
-    #     print("\n")
-    # coins.pop(1650303)
-    # y = [pay_coins[int(len(pay_coins)/4.0 * 3)] for pay_coins in coins.values()]
-    # x = range(len(y))
-    # plt.plot(x, y,'o-')
-    # plt.xticks(x, coins.keys())
-    # plt.boxplot(list(coins.values()), labels = list(coins.keys()), sym = "")
-    # plt.gca().set_xlabel('uid')
-    # plt.gca().set_ylabel('coins')
-    # plt.show()
+        # x = np.array(data_pay + data_not_pay)
+        # y = np.array([1] * len(data_pay) + [0] * len(data_not_pay))
+        # 
+        x += (data_pay + data_not_pay)
+        y += ([1] * len(data_pay) + [0] * len(data_not_pay))
 
-
-
-
+        # train(x, y, seq_len, uid)
+    x = np.array(x)
+    y = np.array(y)
+    score = corelation(x,y)
+    print(score)
+    print("\n")
 
 # def dirlist(path, allfile):
 #     filelist = os.listdir(path)

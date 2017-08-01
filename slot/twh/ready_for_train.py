@@ -133,8 +133,8 @@ def read_user_data_custom(file_dir, seq_len, max_len):
         file_odds = os.path.join(file_dir, pre_fix + "odds.txt")
         f_odds = open(file_odds, 'r')
 
-        # file_coin = os.path.join(file_dir, pre_fix + "coin.txt")
-        # f_coin = open(file_coin, 'r')
+        file_coin = os.path.join(file_dir, pre_fix + "coin.txt")
+        f_coin = open(file_coin, 'r')
 
         # file_bonus = os.path.join(file_dir, pre_fix + "win_bonus.txt")
         # f_bonus = open(file_bonus, 'r')
@@ -143,21 +143,31 @@ def read_user_data_custom(file_dir, seq_len, max_len):
         # f_time = open(file_time, 'r')
 
         while True:
-            line = f_odds.readline().strip()
+            line = f_odds.readline()
+            if not line:
+                break
+            line = line.strip()
             # cr_data = np.zeros(3 + seq_len)
             line = line.split(" ")
             if len(line) < seq_len or line[-1] == "-1": # 被抛掉的数据
-                break
-            cr_data = np.zeros(seq_len)
-            for i in range(seq_len):
-                # cr_data[3 + i] = float(line[max_len - seq_len + i])
-                cr_data[i] = float(line[-seq_len + i])
+                continue
 
-            # line = f_coin.readline()
-            # if not line:
-            #     break
-            # # line = line.relace("\n",'')
-            # line = line.strip()
+            odds = [float(x) for x in line[-seq_len:]]
+            odds_stat = process_data(odds)
+
+            line = f_coin.readline()
+            if not line:
+                break
+            # line = line.relace("\n",'')
+            line = line.strip().split(" ")
+            if len(line) < seq_len or line[-1] == "-1": # 被抛掉的数据
+                continue
+            coin = float(line[-1])
+            origin_coin = float(line[0])
+            earn = float(line[-1]) - float(line[0])
+            ratio = earn / origin_coin if origin_coin else earn
+
+            cr_data = np.hstack((coin, earn, ratio, odds_stat))
 
             # cr_data = [0] * (3 + seq_len)
             # line = line.split(" ")
@@ -165,7 +175,7 @@ def read_user_data_custom(file_dir, seq_len, max_len):
 
             # line = f_bonus.readline().strip()
             # line = list(map(float, line.split(" ")[max_len - seq_len::]))
-            # cr_data[1] = float(np.sum(line[::-1]))
+            # cr_data[1] = float(np.sum(line[::-1]))b
 
             # line = f_time.readline().strip()
             # line = list(map(float, line.split(" ")[max_len - seq_len::]))
@@ -173,7 +183,8 @@ def read_user_data_custom(file_dir, seq_len, max_len):
             # data[].append(cr_data)
             # lable.append(file_type)
             # data[payed].append(cr_data)
-            data[payed].append(process_data(cr_data))
+            data[payed].append(cr_data)
+
             if file_type == 0:
                 pay_count += 1
             else:
