@@ -542,7 +542,7 @@ class Log_Parser(object):
         # exit()
 
 if __name__ == '__main__':
-    log_file = os.path.join(config.log_base_dir, "after_read")
+    log_file = os.path.join(config.log_base_dir, "1451260.log")
     # out_file_odds = os.path.join(config.log_result_dir, "odds")
     # seq_len = 50
     # seq_len_min = 10
