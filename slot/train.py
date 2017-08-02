@@ -28,6 +28,7 @@ from sklearn.svm import SVC
 import csv
 
 import config
+import pickle
 from twh.ready_for_train import *
 
 
@@ -91,16 +92,14 @@ def train(x, y, seq_len, uid):
     # graph = pydotplus.graph_from_dot_data(dot_data) 
     # graph.write_pdf(os.path.join(path,"tree.pdf"))
 
-def plot_coins(x, y, seq_len, uid):
+def plot_coins(pay_data, uid):
     pay_count = np.sum(y)
      # 金币相关
-    pay_coins = [x_[1] for x_ in x[-pay_count:]]
+    pay_coins = [x[0] for x in pay_data]
     pay_coins = sorted(pay_coins)
-    coins = [x_[1] for x_ in x]
-    with open("coin_" +str(uid) + ".txt",'w') as f:
-        f.write(str(coins))
-    print(pay_coins)
-    print("coin:", pay_coins[int(len(pay_coins)/4.0 * 3 + 1)])
+
+    # print(pay_coins)
+    return np.percentile(pay_coins, 75)
 
 def plot_time(x, y, seq_len, uid):
     pay_count = np.sum(y)
@@ -211,22 +210,51 @@ if __name__ == '__main__':
     x = []
     y = []
     uid_2_vectors = gen_uid_vector(seq_len, max_len)
+    coins = {}
     for uid, vectors in uid_2_vectors.items():
         print("--------",uid,"--------------")
         data_pay = vectors[1]
         data_not_pay = vectors[0]
-        # x = np.array(data_pay + data_not_pay)
-        # y = np.array([1] * len(data_pay) + [0] * len(data_not_pay))
-        # 
-        x += (data_pay + data_not_pay)
-        y += ([1] * len(data_pay) + [0] * len(data_not_pay))
+        print("data_pay:", len(data_pay))
+        print("data_not_pay", len(data_not_pay))
 
-        # train(x, y, seq_len, uid)
-    x = np.array(x)
-    y = np.array(y)
-    score = corelation(x,y)
-    print(score)
-    print("\n")
+        X = np.array((data_pay + data_not_pay))
+        Y = np.array(([1] * len(data_pay) + [0] * len(data_not_pay)))
+        # score = corelation(X,Y)
+        # x_ = range(len(score))
+        # # features = ["coin", "earn", "earn/coin", "mean", "variance", "skewness", "kurtosis", "min", "max"]
+        # plt.plot(x_, score, '--o', label = str(uid))
+
+        # x += (data_pay + data_not_pay)
+        # y += ([1] * len(data_pay) + [0] * len(data_not_pay))
+        
+        # train(X, Y, seq_len, uid)
+
+        data_pay_avg = np.mean(data_pay, axis = 0)[3:]
+        data_not_pay_avg = np.mean(data_not_pay, axis = 0)[3:]
+        x_tick = range(len(data_pay_avg))
+        plt.plot(x_tick,data_pay_avg, label = "pay")
+        plt.plot(x_tick,data_not_pay_avg, label ="not_pay")
+        plt.gca().set_xlabel("features")
+        plt.legend(loc = "upper right")
+        features = ["coin", "earn", "earn/coin", "mean", "variance", "skewness", "kurtosis", "min", "max"]
+        plt.xticks(x_tick, features, rotation = -30)
+        path = file_util.get_figure_path("slot",str(uid))
+        plt.savefig(os.path.join(path, "odds_stat_pay_and_no_pay_limited_by_coin"))
+        plt.cla()
+        # 
+    # x = np.array(x)
+    # y = np.array(y)
+    # print(np.sum(y))
+    # score = corelation(x,y)
+    # x_ = range(len(score))
+    # features = ["coin", "earn", "earn/coin", "mean", "variance", "skewness", "kurtosis", "min", "max"]
+    # plt.plot(x_, score, '--o', label = "total")
+    # plt.xticks(x_, features, rotation = -30)
+    # plt.legend(loc = "upper right")
+    # print(score)
+    # plt.show()
+    # print("\n")
 
 # def dirlist(path, allfile):
 #     filelist = os.listdir(path)

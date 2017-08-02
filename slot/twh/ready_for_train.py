@@ -130,6 +130,13 @@ def read_user_data_custom(file_dir, seq_len, max_len):
         if file_type == 0:
             pre_fix = 'pay_'
             payed = 1
+        if file_type == 1:
+            pay_coins = [x[0] for x in data[1]]
+            coin_quartile = np.percentile(pay_coins, 75)
+            for i,x in enumerate(data[1]):
+                if(x[0] > coin_quartile):
+                    data[1].pop(i)
+                    pay_count -= 1
         file_odds = os.path.join(file_dir, pre_fix + "odds.txt")
         f_odds = open(file_odds, 'r')
 
@@ -163,6 +170,8 @@ def read_user_data_custom(file_dir, seq_len, max_len):
             if len(line) < seq_len or line[-1] == "-1": # 被抛掉的数据
                 continue
             coin = float(line[-1])
+            if file_type == 1 and coin > coin_quartile:
+                continue
             origin_coin = float(line[0])
             earn = float(line[-1]) - float(line[0])
             ratio = earn / origin_coin if origin_coin else earn
@@ -198,6 +207,8 @@ def read_user_data_custom(file_dir, seq_len, max_len):
         # f_coin.close()
         # f_time.close()
     # return [data, lable]
+    if pay_count < 10:
+        return []
     return data
 
 # 读玩家数据
