@@ -100,7 +100,7 @@ def process_data(data):
     # stat_info[2] = desc_no_pay.skewness * desc_no_pay.mean  # 无量纲
     # stat_info[3] = desc_no_pay.kurtosis * desc_no_pay.mean # 无量纲
     stat_info[2] = desc_no_pay.skewness  # 无量纲
-    stat_info[3] = desc_no_pay.kurtosis # 无量纲
+    stat_info[3] = desc_no_pay.kurtosis  # 无量纲
     stat_info[4] = desc_no_pay.minmax[0]
     stat_info[5] = desc_no_pay.minmax[1]
 
@@ -112,6 +112,55 @@ def process_data(data):
     # stat_info.append(desc_no_pay.minmax[1] )
 
     return stat_info
+
+
+def get_one_user_odds(file_dir, odds_count_dict, total_count, max_count):
+    for payed in range(2):
+        pre_fix = ""
+        if payed == 0:
+            pre_fix = 'pay_'
+        file_odds = os.path.join(file_dir, pre_fix + "odds.txt")
+        if (not os.path.exists(file_odds)):
+            continue
+        f_odds = open(file_odds, 'r')
+        while True:
+            line = f_odds.readline().strip()
+            if not line:
+                break
+            # cr_data = np.zeros(3 + seq_len)
+            line = line.split(" ")
+            # if len(line) < 2:
+            #     break
+            if line[-1] == "-1":  # 被抛掉的数据
+                continue
+            # print(line)
+            for cr_odd in line:
+                cr_odd= round(float(cr_odd),1)
+                odds_count_dict[payed][cr_odd] += 1
+                total_count+= 1
+                if(total_count > max_count):
+                    return 1
+    return 0
+
+
+def get_odds_vector(max_count=100000):
+    base_dir = os.path.join(config.log_result_dir, "slot")
+    # base_dir = r"E:\codes\GitHubs\slot\result"
+    total_count = 0
+    odds_count_dict = [defaultdict(int), defaultdict(int)]  # 充值的，没充值的，分别是odds->count
+    dir_list = os.listdir(base_dir)
+    for cr_uid in dir_list:
+        if not cr_uid.isdigit():
+            continue
+        user_dir = os.path.join(base_dir, cr_uid)
+        if not os.path.isdir(user_dir):
+            continue
+        is_end = get_one_user_odds(user_dir, odds_count_dict, total_count, max_count)
+        if is_end:
+            print("break");
+            return odds_count_dict
+    return odds_count_dict
+
 
 def read_user_data_custom(file_dir, seq_len, max_len):
     """
@@ -146,7 +195,7 @@ def read_user_data_custom(file_dir, seq_len, max_len):
             line = f_odds.readline().strip()
             # cr_data = np.zeros(3 + seq_len)
             line = line.split(" ")
-            if len(line) < seq_len or line[-1] == "-1": # 被抛掉的数据
+            if len(line) < seq_len or line[-1] == "-1":  # 被抛掉的数据
                 break
             cr_data = np.zeros(seq_len)
             for i in range(seq_len):
@@ -190,6 +239,8 @@ def read_user_data_custom(file_dir, seq_len, max_len):
     return data
 
 # 读玩家数据
+
+
 def read_user_data(file_dir, seq_len, max_len):
     """
     max_len : 原始文件的最大序列长度，目前是10
@@ -225,7 +276,7 @@ def read_user_data(file_dir, seq_len, max_len):
             line = f_odds.readline().strip()
             # cr_data = np.zeros(3 + seq_len)
             line = line.split(" ")
-            if len(line) < seq_len or line[-1] == "-1": # 被抛掉的数据
+            if len(line) < seq_len or line[-1] == "-1":  # 被抛掉的数据
                 break
             cr_data = np.zeros(seq_len)
             for i in range(seq_len):
@@ -270,7 +321,7 @@ def read_user_data(file_dir, seq_len, max_len):
 
 
 def gen_uid_vector(seq_len, max_len):
-    base_dir = os.path.join(config.log_base_dir, "result")
+    base_dir = os.path.join(config.log_result_dir, "slot")
     # base_dir = r"E:\codes\GitHubs\slot\result"
 
     uid_2_vectors = {}
@@ -287,57 +338,74 @@ def gen_uid_vector(seq_len, max_len):
 # exit()
 
 if __name__ == '__main__':
-
-    from scipy import stats
-    # from scipy.stat import skew
-    file_names = ['coin', 'is_free', 'level', 'odds',
-                  'time_delta', 'win_bonus', 'win_free']
-    seq_len = 10
-    max_len = 50
-
-    # mean_time = calc_len_times(seq_len, max_len)
-    # exit()
-    uid_2_vectors = gen_uid_vector(seq_len, max_len)
-    # print(len(uid_2_vectors))
-    # print(uid_2_vectors)
-    stat_uid = {}
-    for uid, vectors in uid_2_vectors.items():
-        no_pay = np.array(vectors[0])
-        pay = np.array(vectors[1])
-
-        types = ["均值", "方差", "偏度", "峰度", "最小", "最大"]
-
-        no_pay_stat = []
-        pay_stat = []
-        for i in range(len(types)):
-            no_pay_stat.append(np.mean(no_pay[:, i]))
-            pay_stat.append(np.mean(pay[:, i]))
-
-        from matplotlib import pyplot as plt
-        plt.xlabel = "stat type"
-        plt.ylabel = "stat value"
-        types = ["均值", "方差", "偏度", "峰度", "最小", "最大"]
-        plt.plot(no_pay_stat, label="no pay")
-        plt.plot(pay_stat, label="pay")
-
-        plt.legend()
-        plt.show()
-
-        print(pay)
-
+    import numpy as np
     from matplotlib import pyplot as plt
-    for uid, cr_data in stat_uid.items():
-        no_pay = cr_data[0]
-        pay = cr_data[1]
+    odds_count_dict = get_odds_vector(1000000)
+    no_pay = sorted(odds_count_dict[0].items(), key=lambda x : x[0])
+    del odds_count_dict
+    no_pay = np.array(no_pay)
+    no_pay_x = no_pay[:,0]
+    no_pay_y = no_pay[:,1]
+    plt.xlabel("odds")
+    plt.ylabel("count")
+    # plt.ylim(ymax=30,ymin=0)
+    plt.xlim(xmax=10,xmin=0)
+    plt.scatter(no_pay_x, no_pay_y, marker='.', )
+    plt.legend()
+    plt.show()
+    
+    
 
-        plt.xlabel = "stat type"
-        plt.ylabel = "stat value"
-        types = ["均值", "方差", "偏度", "峰度", "最小", "最大"]
-        plt.plot(no_pay, types, label="no pay")
-        plt.plot(pay, types, label="pay")
+    # from scipy import stats
+    # # from scipy.stat import skew
+    # file_names = ['coin', 'is_free', 'level', 'odds',
+    #               'time_delta', 'win_bonus', 'win_free']
+    # seq_len = 10
+    # max_len = 50
 
-        plt.legend()
-        plt.show()
+    # # mean_time = calc_len_times(seq_len, max_len)
+    # # exit()
+    # uid_2_vectors = gen_uid_vector(seq_len, max_len)
+    # # print(len(uid_2_vectors))
+    # # print(uid_2_vectors)
+    # stat_uid = {}
+    # for uid, vectors in uid_2_vectors.items():
+    #     no_pay = np.array(vectors[0])
+    #     pay = np.array(vectors[1])
+
+    #     types = ["均值", "方差", "偏度", "峰度", "最小", "最大"]
+
+    #     no_pay_stat = []
+    #     pay_stat = []
+    #     for i in range(len(types)):
+    #         no_pay_stat.append(np.mean(no_pay[:, i]))
+    #         pay_stat.append(np.mean(pay[:, i]))
+
+    #     from matplotlib import pyplot as plt
+    #     plt.xlabel = "stat type"
+    #     plt.ylabel = "stat value"
+    #     types = ["均值", "方差", "偏度", "峰度", "最小", "最大"]
+    #     plt.plot(no_pay_stat, label="no pay")
+    #     plt.plot(pay_stat, label="pay")
+
+    #     plt.legend()
+    #     plt.show()
+
+    #     print(pay)
+
+    # from matplotlib import pyplot as plt
+    # for uid, cr_data in stat_uid.items():
+    #     no_pay = cr_data[0]
+    #     pay = cr_data[1]
+
+    #     plt.xlabel = "stat type"
+    #     plt.ylabel = "stat value"
+    #     types = ["均值", "方差", "偏度", "峰度", "最小", "最大"]
+    #     plt.plot(no_pay, types, label="no pay")
+    #     plt.plot(pay, types, label="pay")
+
+    #     plt.legend()
+    #     plt.show()
 
         # stat_pay.append(np.mean(pay))
         # stat_pay.append(np.var(pay))
