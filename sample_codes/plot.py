@@ -4,12 +4,39 @@ import os
 import sys
 import matplotlib.pyplot as plt
 # from collections import defaultdict
+axis = plt.gca().xaxis
+plt.gca().plot([1,2,3],[4,5,6])
 
+print(axis)
+print(axis.get_ticklocs())
+print(axis.get_ticklabels())
+
+for label in axis.get_ticklabels():
+    label.set_color("red")
+    label.set_rotation(45)
+    label.set_fontsize(16)
+    # label.set_text("test")
+
+for line in axis.get_ticklines():
+    line.set_color("green")
+    line.set_markersize(25)
+    line.set_markeredgewidth(3)
+
+txt = [x.get_text() for x in axis.get_ticklabels()]
+print(txt)
+
+# for t in txt:
+#     print(t)
+
+plt.show()
+exit()
+
+# 给fig添加对象
 x = [1,2,3,4]
 fig=plt.figure()
-ax1=fig.add_subplot(221)
+ax1=fig.add_subplot(221) # 增加一个子图
 # ax2=fig.add_axes([1,1,1,1])
-ax2=fig.add_axes([0.1, 0.1, 0.7, 0.3])
+ax2=fig.add_axes([0.1, 0.1, 0.7, 0.3]) # 增加一个子图，四个参数不懂
 
 for ax in fig.axes: # 遍历axes，显示格子
     ax.grid(True)
@@ -21,6 +48,9 @@ for ax in fig.axes: # 遍历axes，显示格子
 from matplotlib.lines import Line2D
 line1 = Line2D([0,1],[0,5], transform=fig.transFigure, figure=fig, color="r")
 fig.lines.extend([line1]) # 整个画布上画像
+
+np.random.seed(0)
+n, bins, rects = ax1.hist(np.random.randn(1000), 50, facecolor="blue") # 画柱状图
 
 plt.plot(x)
 plt.show()
