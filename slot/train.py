@@ -6,18 +6,24 @@ from collections import defaultdict
 from enum import Enum, unique
 from utils import *
 import matplotlib.pyplot as plt
+import shutil
 
 from sklearn import preprocessing
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import Normalizer
 from sklearn.model_selection import StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier 
 from sklearn.naive_bayes import GaussianNB
+from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
 
 from sklearn.model_selection import train_test_split
 from sklearn import tree
+
+from dtw import dtw
 
 import pydotplus
 from sklearn.model_selection import cross_val_score
@@ -191,6 +197,43 @@ def plot_odds(x, y, seq_len, uid):
     plt.savefig(os.path.join(path, "odds_var"))
     plt.cla()
 
+def odds_cluster_DBSCAN(X):
+    dbscan = DBSCAN(eps = 0.035, min_samples = 10, metric = cal_dtw)
+    y_pred = dbscan.fit_predict(X)
+    print(len(dbscan.core_sample_indices_))
+
+    return y_pred
+
+def odds_cluster_Birch(X):
+    birch = Birch(n_clusters = None) #threshold branching_factor n_clusters 
+    y_pred = birch.fit_predict(X)
+    return y_pred
+
+def cal_dtw(x,y):
+    x = x.reshape(-1,1)
+    y = y.reshape(-1,1)
+    dist, cost, acc, path = dtw(x, y, dist=lambda x, y: np.linalg.norm(x - y, ord = 1))
+
+    # plt.figure(1)
+    # plt.plot(x, 'bo-')
+    # plt.plot(y + 10, 'o-')
+    # for i in range(len(path[0])):
+    #     x_tmp = [path[0][i], path[1][i]]
+    #     tmp = [x[path[0][i]], y[path[1]][i] + 10]
+    #     plt.plot(x_tmp, tmp, '.--')
+    # print(dist)
+
+    # plt.figure(2)
+    # plt.imshow(acc.T, origin='lower', cmap=plt.cm.gray, interpolation='nearest')
+    # plt.plot(path[0], path[1], 'w')
+    # plt.xlim((-0.5, acc.shape[0]-0.5))
+    # plt.ylim((-0.5, acc.shape[1]-0.5))
+    # print(path[0], path[1])
+    
+    # plt.show()
+    
+    return dist
+
 def corelation(x,y):
     score, p_value = other_util.mul_pearson(x,y)
     return score
@@ -202,7 +245,7 @@ if __name__ == '__main__':
     # from scipy.stat import skew
     file_names = ['coin', 'is_free', 'level', 'odds',
                   'time_delta', 'win_bonus', 'win_free']
-    seq_len = 10
+    seq_len = 40
     max_len = 50
 
     # mean_time = calc_len_times(seq_len, max_len)
@@ -211,6 +254,8 @@ if __name__ == '__main__':
     y = []
     uid_2_vectors = gen_uid_vector(seq_len, max_len)
     coins = {}
+    # scaler = Normalizer()
+    # x = scaler.fit_transform(x)
     for uid, vectors in uid_2_vectors.items():
         print("--------",uid,"--------------")
         data_pay = vectors[1]
@@ -220,6 +265,26 @@ if __name__ == '__main__':
 
         X = np.array((data_pay + data_not_pay))
         Y = np.array(([1] * len(data_pay) + [0] * len(data_not_pay)))
+        # if uid == str(1560678):
+        #     x1 = X[3]
+        #     x2 = X[4]
+        #     cal_dtw(x1,x2)
+        # X = scaler.fit_transform(X)
+        y_pred = odds_cluster_DBSCAN(X)
+        print(y_pred)
+        labels = set(y_pred)
+        path = file_util.get_figure_path("slot",str(uid),"cluster")
+        if os.path.exists(path):
+            shutil.rmtree(path)
+        for label in labels:
+            path = file_util.get_figure_path("slot",str(uid),"cluster",str(label))
+            print("label: %s" %label)
+            x_tmp = X[y_pred == label, :]
+            for i,x in enumerate(x_tmp):
+                plt.plot(x)
+                plt.savefig(os.path.join(path, str(i)))
+                plt.cla()
+
         # score = corelation(X,Y)
         # x_ = range(len(score))
         # # features = ["coin", "earn", "earn/coin", "mean", "variance", "skewness", "kurtosis", "min", "max"]
@@ -230,18 +295,18 @@ if __name__ == '__main__':
         
         # train(X, Y, seq_len, uid)
 
-        data_pay_avg = np.mean(data_pay, axis = 0)[3:]
-        data_not_pay_avg = np.mean(data_not_pay, axis = 0)[3:]
-        x_tick = range(len(data_pay_avg))
-        plt.plot(x_tick,data_pay_avg, label = "pay")
-        plt.plot(x_tick,data_not_pay_avg, label ="not_pay")
-        plt.gca().set_xlabel("features")
-        plt.legend(loc = "upper right")
-        features = ["coin", "earn", "earn/coin", "mean", "variance", "skewness", "kurtosis", "min", "max"]
-        plt.xticks(x_tick, features, rotation = -30)
-        path = file_util.get_figure_path("slot",str(uid))
-        plt.savefig(os.path.join(path, "odds_stat_pay_and_no_pay_limited_by_coin"))
-        plt.cla()
+        # data_pay_avg = np.mean(data_pay, axis = 0)[3:]
+        # data_not_pay_avg = np.mean(data_not_pay, axis = 0)[3:]
+        # x_tick = range(len(data_pay_avg))
+        # plt.plot(x_tick,data_pay_avg, label = "pay")
+        # plt.plot(x_tick,data_not_pay_avg, label ="not_pay")
+        # plt.gca().set_xlabel("features")
+        # plt.legend(loc = "upper right")
+        # features = ["coin", "earn", "earn/coin", "mean", "variance", "skewness", "kurtosis", "min", "max"]
+        # plt.xticks(x_tick, features, rotation = -30)
+        # path = file_util.get_figure_path("slot",str(uid))
+        # plt.savefig(os.path.join(path, "odds_stat_pay_and_no_pay_limited_by_coin"))
+        # plt.cla()
         # 
     # x = np.array(x)
     # y = np.array(y)
