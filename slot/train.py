@@ -198,7 +198,7 @@ def plot_odds(x, y, seq_len, uid):
     plt.cla()
 
 def odds_cluster_DBSCAN(X):
-    dbscan = DBSCAN(eps = 0.035, min_samples = 10, metric = cal_dtw)
+    dbscan = DBSCAN(eps = 0.035, min_samples = 8, metric = cal_dtw)
     y_pred = dbscan.fit_predict(X)
     print(len(dbscan.core_sample_indices_))
 
