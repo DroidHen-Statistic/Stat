@@ -5,6 +5,7 @@ import os
 
 
 from functools import reduce
+import numpy as np
 
 
 def union_dict(*objs, f=lambda x, y: x + y, initial=0):
