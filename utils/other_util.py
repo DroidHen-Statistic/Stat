@@ -7,6 +7,11 @@ import numpy as np
 from functools import reduce
 import numpy as np
 
+"""
+反转字典的k和v
+"""
+def flip_dict(d):
+    return { pair[1]:pair[0] for pair in d.items()}
 
 def union_dict(*objs, f=lambda x, y: x + y, initial=0):
     """
