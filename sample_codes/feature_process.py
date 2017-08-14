@@ -123,7 +123,7 @@ coder.fit_transform(a)
 # Desired dtype of output.
 
 
-# 补齐参数
+# 补齐缺失的参数
 from sklearn.preprocessing import Imputer
 a = np.array([[0,  2,  4],
               [3,  2,  5],
@@ -171,7 +171,7 @@ poly.fit_transform(a)
 # interaction_only : boolean, default = False
 #   If true, only interaction features are produced: features that are
 #   products of at most degree distinct input features (so not x[1] ** 2,
-#   x[0] * x[2] ** 3, etc.).
+#   x[0] * x[2] ** 3, etc.). # 只有交叉项，每个特征最多出现一次
 poly.set_params(interaction_only=True)
 poly.fit_transform(a)  # 没有x1平方这种项了
 # include_bias : boolean

@@ -4,6 +4,16 @@ import os
 import sys
 import matplotlib.pyplot as plt
 # from collections import defaultdict
+
+
+# 散点图，可以用y指定颜色
+X1=[1,2,3,4,5]
+X2=[3,4,5,6,7]
+y=[0,1,0,1,2]
+plt.scatter(X1, X2, marker='o', c=y)
+plt.show()
+exit()
+
 axis = plt.gca().xaxis
 plt.gca().plot([1,2,3],[4,5,6])
 
@@ -29,12 +39,12 @@ print(txt)
 #     print(t)
 
 plt.show()
-exit()
+# exit()
 
 # 给fig添加对象
 x = [1,2,3,4]
 fig=plt.figure()
-ax1=fig.add_subplot(221) # 增加一个子图
+ax1=fig.add_subplot(221) # 增加一个子图，注意，fig要用add
 # ax2=fig.add_axes([1,1,1,1])
 ax2=fig.add_axes([0.1, 0.1, 0.7, 0.3]) # 增加一个子图，四个参数不懂
 
@@ -57,7 +67,6 @@ plt.show()
 exit()
 
 
-
 for idx, color in enumerate("rgbyck"):
     plt.subplot(320+idx+1, facecolor=color)
     #如果希望在程序中调节的话，可以调用subplots_adjust函数，
@@ -75,6 +84,7 @@ plt.plot(x)
 plt.figure(1) # 切换到第一个图
 s1 = plt.subplot(3,2,1)
 s1.plot(x)
+ax.set_xscale("log",basex=2) # 对数坐标轴
 # fig2.subplot(222).plot(x)
 # fig.patch.set_color("g") #设置背景颜色
 plt.show()

@@ -3,6 +3,42 @@ import matplotlib.pyplot as plt
 import csv
 import os
 
+aplha = 1
+max_iter = 1000 # 最大迭代数
+
+# # 最简单的线性回归
+# x1 = np.arange(0, 20)
+# x2 = np.arange(20, 0, -1)
+# y = 3 + 2 * x1 + 4 * x2
+# y = y.astype(float)
+# # 加噪声
+# from numpy import random as rand
+# y += rand.randn(len(y))
+
+# from sklearn import datasets, linear_model
+# from sklearn.linear_model import Ridge
+
+# ridge = Ridge(alpha = aplha, max_iter= max_iter)
+# x = np.vstack((x1, x2)).T
+# ridge.fit(x, y)
+# y_pre = ridge.predict(x)
+# print(ridge)
+
+# import matplotlib.pyplot as plt
+
+# plt.plot(x[:,0], y_pre, label="y_pre")
+# plt.plot(x[:,0], y, label="y_ture")
+# plt.xlabel("x values")
+# plt.ylabel("y values")
+# from sklearn.metrics import mean_squared_error as mse
+# err = mse(y, y_pre)
+# print(err)
+# plt.legend()
+# plt.show()
+# exit()
+
+
+# 对回归进行分析
 # 数据
 csv_file = os.path.join( os.path.dirname(os.path.abspath(__file__)), "data"+ os.path.sep + "CCPP" + os.path.sep + "Folds5x2_pp.csv")
 with open(csv_file, "r") as f:
@@ -31,11 +67,82 @@ with open(csv_file, "r") as f:
         y_class.append( int(float(line[-1]) > 454.3 ) )
         # print(X[data_pos], y[data_pos])
         # break
+from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
 
+# # 交叉选择cv
+# from sklearn.linear_model import RidgeCV
+# alphas=[0.01, 0.1, 0.5, 1, 3, 5, 7, 10, 20, 100]
+# scoring = "neg_mean_squared_error" # 平方最小
+# scoring = "neg_mean_absolute_error" # 绝对值最小
+# scoring = "neg_median_absolute_error" # 误差绝对值的中位数最小
+# ridgecv = RidgeCV(alphas= alphas, scoring=scoring, cv =5)
+# ridgecv.fit(X_train, y_train)
+# print(ridgecv.alpha_)
+
+# 照着别人博客写的
+from sklearn.linear_model import Ridge
+import numpy.random as rand
+X = 1. / (np.arange(1, 11) + np.arange(0, 10)[:, np.newaxis])
+# y = np.ones(10)
+y = rand.randn(10) * 10
+n_alphas = 200
+alphas = np.logspace(-10, -2, n_alphas)
+coefs = []
+for alpha in alphas:
+    ridge = Ridge(alpha=alpha) 
+    # ridge = Ridge(alpha=alpha, fit_intercept=False) # 如果有bias，按博客的样例，y都是1，那让所有系数都是0就好了
+    ridge.fit(X, y)
+    coefs.append(ridge.coef_)
+
+
+# # 使用前面的数据，自己写的
+# # 把alpha的图画出来，随着alpha的增大，theda迅速变成0
+# alphas = np.logspace(1, 2, 3, base= 10) * 0.01
+# # alphas = np.logspace(0.1, 1, 2)
+# from sklearn.linear_model import Ridge
+# coefs = []
+# # ridge = Ridge()
+# for alpha in alphas:
+#     ridge = Ridge(alpha=alpha)
+#     # ridge.set_params(alpha=alpha)
+#     ridge.fit(X_train, y_train)
+#     coefs.append(ridge.coef_)
+
+coefs = np.array(coefs)
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.set_xlabel("alpha")
+ax.set_ylabel("theta")
+
+# x = [1,2]
+# y = [[1,2], [3,4]]
+# ax.plot(x,y)
+# print(alphas, coefs.T[0])
+# ax.plot(alphas, coefs, "-o")
+for pos, cr_theta in enumerate(coefs.T):
+    ax.set_xscale("log",basex=10) 
+    ax.plot(alphas, cr_theta, "-", label = "theta%s" % pos)
+
+plt.legend(loc="upper right")
+plt.show()
+
+# from sklearn import metrics as mt
+# y = [0,0,0,0,0]
+# y_pre = [0,1,7,9,10]
+# print(mt.neg_median_absolute_error(y, y_pre))
+
+
+# print(alpha)
+exit()
+
+
+
+
+
+# 打分
 from sklearn.base import BaseEstimator
-from sklearn.model_selection import cross_val_score
 class My_est(BaseEstimator):
     """docstring for ClassName"""
     def __init__(self, est_, scoring):
@@ -54,7 +161,10 @@ class My_est(BaseEstimator):
         return score
 
 
-    
+#交叉验证
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
+exit()
 
 # 逻辑回归
 from sklearn.pipeline import Pipeline
@@ -93,7 +203,7 @@ plt.show()
 # ax.set_xlim(ax.get_xlim()[::-1]) 
 # plt.xlabel('alpha')
 # plt.ylabel('weights')
-# plt.title('Ridge coefficients as a function of the regularization')
+# plt.title('Ridge coefs as a function of the regularization')
 # plt.axis('tight')
 # plt.show()
 
@@ -180,7 +290,7 @@ ax.set_xscale('log')
 ax.set_xlim(ax.get_xlim()[::-1]) 
 plt.xlabel('alpha')
 plt.ylabel('weights')
-plt.title('Ridge coefficients as a function of the regularization')
+plt.title('Ridge coefs as a function of the regularization')
 plt.axis('tight')
 plt.show()
 
