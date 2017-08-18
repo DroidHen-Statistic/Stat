@@ -50,7 +50,7 @@ class Vector_Reader(object):
             if not os.path.isdir(user_dir):
                 continue
 
-            ret = self.read_user_data(user_dir, seq_len, max_len)
+            ret = self._read_user_data(user_dir, seq_len, max_len)
             if len(ret) > 0:
                 uid_2_vectors[cr_uid] = ret
         return uid_2_vectors
