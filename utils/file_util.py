@@ -11,7 +11,7 @@ def get_path(base = config.base_dir, *paths):
     for path in paths:
         ret = os.path.join(ret,path)
         if not os.path.exists(ret):
-            os.mkdir(ret)
+            os.makedirs(ret)
     return ret
 
 def get_figure_path(*subfolder):

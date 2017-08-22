@@ -6,18 +6,24 @@ from collections import defaultdict
 from enum import Enum, unique
 from utils import *
 import matplotlib.pyplot as plt
+import shutil
 
 from sklearn import preprocessing
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import Normalizer
 from sklearn.model_selection import StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier 
 from sklearn.naive_bayes import GaussianNB
+from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
 
 from sklearn.model_selection import train_test_split
 from sklearn import tree
+
+from dtw import dtw
 
 import pydotplus
 from sklearn.model_selection import cross_val_score
@@ -28,10 +34,11 @@ from sklearn.svm import SVC
 import csv
 
 import config
+import pickle
 from twh.ready_for_train import *
 
 
-def train_plot(x, y, seq_len, uid):
+def train(x, y, seq_len, uid):
     scaler = StandardScaler()
     # x = scaler.fit_transform(x)
     
@@ -48,10 +55,6 @@ def train_plot(x, y, seq_len, uid):
         "RF":RandomForestClassifier(max_depth = 5),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier(),"Bayes":GaussianNB()}
     
     # clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5)} 
-    # f = open("E://python//stat//slot//accuracy//accuracy_" + str(uid) + ".csv", 'a',newline = '')
-    # writer = csv.writer(f)
-    # writer.writerow([uid, pay_count])
-    # writer.writerow(["", "cross_accuracy", "cross_recall", "cross_precision", "accuracy", "recall", "precision"])   
     for name, clf in clfs.items():
         print("------%s-------" % name)
         pipe_lr = Pipeline([('clf', clf)])
@@ -86,18 +89,8 @@ def train_plot(x, y, seq_len, uid):
         accuracy = (positive_true + negative_true)/len(y_predict)
         
         print('Test accuracy: %.3f pay_count: %d recall: %d' % (pipe_lr.score(x_test, y_test), pay_count, recall))
-        # writer.writerow([name, cross_accuracy, cross_recall, cross_precision, accuracy, recall, precision])
 
-    # f.close()
 
-    # print(y_predict)
-    # print("recall: %f" %(recall/np.sum(y_test)))
-    # print("positive ratio: ", np.sum(y_train)/len(y_train))
-    # print("percision: ", clf.score(x_test, y_test))
-    # # print(clf.predict(x_test))
-    # # print(y_test)
-    # # 
-    # 
     
     # with open(os.path.join(path,"test.dot"), 'w') as f:
     #     f = tree.export_graphviz(clf, out_file=f)
@@ -105,16 +98,14 @@ def train_plot(x, y, seq_len, uid):
     # graph = pydotplus.graph_from_dot_data(dot_data) 
     # graph.write_pdf(os.path.join(path,"tree.pdf"))
 
-def plot_coins(x, y, seq_len, uid):
+def plot_coins(pay_data, uid):
     pay_count = np.sum(y)
      # 金币相关
-    pay_coins = [x_[1] for x_ in x[-pay_count:]]
+    pay_coins = [x[0] for x in pay_data]
     pay_coins = sorted(pay_coins)
-    coins = [x_[1] for x_ in x]
-    with open("coin_" +str(uid) + ".txt",'w') as f:
-        f.write(str(coins))
-    print(pay_coins)
-    print("coin:", pay_coins[int(len(pay_coins)/4.0 * 3 + 1)])
+
+    # print(pay_coins)
+    return np.percentile(pay_coins, 75)
 
 def plot_time(x, y, seq_len, uid):
     pay_count = np.sum(y)
@@ -206,45 +197,47 @@ def plot_odds(x, y, seq_len, uid):
     plt.savefig(os.path.join(path, "odds_var"))
     plt.cla()
 
-def train(x, y):
-    scaler = StandardScaler()
-    x = scaler.fit_transform(x)
+def odds_cluster_DBSCAN(X):
+    dbscan = DBSCAN(eps = 0.035, min_samples = 10, metric = cal_dtw)
+    y_pred = dbscan.fit_predict(X)
+    print(len(dbscan.core_sample_indices_))
+
+    return y_pred
+
+def odds_cluster_Birch(X):
+    birch = Birch(n_clusters = None) #threshold branching_factor n_clusters 
+    y_pred = birch.fit_predict(X)
+    return y_pred
+
+def cal_dtw(x,y):
+    x = x.reshape(-1,1)
+    y = y.reshape(-1,1)
+    dist, cost, acc, path = dtw(x, y, dist=lambda x, y: np.linalg.norm(x - y, ord = 1))
+
+    # plt.figure(1)
+    # plt.plot(x, 'bo-')
+    # plt.plot(y + 10, 'o-')
+    # for i in range(len(path[0])):
+    #     x_tmp = [path[0][i], path[1][i]]
+    #     tmp = [x[path[0][i]], y[path[1]][i] + 10]
+    #     plt.plot(x_tmp, tmp, '.--')
+    # print(dist)
+
+    # plt.figure(2)
+    # plt.imshow(acc.T, origin='lower', cmap=plt.cm.gray, interpolation='nearest')
+    # plt.plot(path[0], path[1], 'w')
+    # plt.xlim((-0.5, acc.shape[0]-0.5))
+    # plt.ylim((-0.5, acc.shape[1]-0.5))
+    # print(path[0], path[1])
     
-    # x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1, random_state=42)
-    # print(y_test)
-    x_train = x_test = x
-    y_train = y_test = y
-
-    # tmp = [x_[0] for x_ in x[-31:]]
-    # print(np.mean(tmp))
+    # plt.show()
     
+    return dist
 
-    # clfs = [tree.DecisionTreeClassifier(max_depth = 5),
-        # RandomForestClassifier(max_depth = 5),ExtraTreesClassifier(),AdaBoostClassifier(),GradientBoostingClassifier(),GaussianNB()]
-    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5),
-        "RF":RandomForestClassifier(max_depth = 5),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier(),"Bayes":GaussianNB()}
-    for name, clf in clfs.items():
-        print("------%s-------" % name)
-        pipe_lr = Pipeline([('clf', clf)])
+def corelation(x,y):
+    score, p_value = other_util.mul_pearson(x,y)
+    return score
 
-        # recall = np.mean(cross_val_score(clf, x_train,
-                                # y_train, scoring="recall", cv=5))
-        # precision = np.mean(cross_val_score(clf, x_train,
-        #                         y_train, scoring="precision", cv=5))
-        # roc_auc = np.mean(cross_val_score(clf, x_train,
-        #                         y_train, scoring="roc_auc", cv=5))
-        # f1 = np.mean(cross_val_score(clf, x_train,
-        #                         y_train, scoring="f1", cv=5))
-        # print(recall, precision, roc_auc)
-        pipe_lr.fit(x_train, y_train)
-        y_predict = pipe_lr.predict(x_test)
-        pay_count = np.sum(y_test)
-        # print(pay_count)
-        recall = 0
-        for i in range(len(y_test)):
-            if y_test[i] == 1 and y_predict[i] == 1:
-                recall += 1
-        print('Test accuracy: %.3f pay_count: %d recall: %d' % (pipe_lr.score(x_test, y_test), pay_count, recall))
 
 if __name__ == '__main__':
 
@@ -252,46 +245,81 @@ if __name__ == '__main__':
     # from scipy.stat import skew
     file_names = ['coin', 'is_free', 'level', 'odds',
                   'time_delta', 'win_bonus', 'win_free']
-    seq_len = 10
+    seq_len = 40
     max_len = 50
 
     # mean_time = calc_len_times(seq_len, max_len)
     # exit()
+    x = []
+    y = []
     uid_2_vectors = gen_uid_vector(seq_len, max_len)
+    coins = {}
+    # scaler = Normalizer()
+    # x = scaler.fit_transform(x)
     for uid, vectors in uid_2_vectors.items():
         print("--------",uid,"--------------")
         data_pay = vectors[1]
         data_not_pay = vectors[0]
-        x = np.array(data_pay + data_not_pay)
-        y = np.array([1] * len(data_pay) + [0] * len(data_not_pay))
-        # plot_time(uid_2_vectors[str(uid)][0], uid_2_vectors[str(uid)][1], seq_len, uid)
-        train_plot(x, y, seq_len, uid)
-        print("\n")
-        # coins[uid] = ret
-    # coins = {}
-    # for uid in uids:
-    #     print("uid: %d" %uid)
-    #     data_pay = uid_2_vectors[str(uid)][1]
-    #     data_not_pay = uid_2_vectors[str(uid)][0]
-    #     x = np.array(data_pay + data_not_pay)
-    #     y = np.array([1] * len(data_pay) + [0] * len(data_not_pay))
-    #     # plot_time(uid_2_vectors[str(uid)][0], uid_2_vectors[str(uid)][1], seq_len, uid)
-    #     train_plot(x, y, seq_len, uid)
-    #     # coins[uid] = ret
-    #     print("\n")
-    # coins.pop(1650303)
-    # y = [pay_coins[int(len(pay_coins)/4.0 * 3)] for pay_coins in coins.values()]
-    # x = range(len(y))
-    # plt.plot(x, y,'o-')
-    # plt.xticks(x, coins.keys())
-    # plt.boxplot(list(coins.values()), labels = list(coins.keys()), sym = "")
-    # plt.gca().set_xlabel('uid')
-    # plt.gca().set_ylabel('coins')
+        print("data_pay:", len(data_pay))
+        print("data_not_pay", len(data_not_pay))
+
+        X = np.array((data_pay + data_not_pay))
+        Y = np.array(([1] * len(data_pay) + [0] * len(data_not_pay)))
+        # if uid == str(1560678):
+        #     x1 = X[3]
+        #     x2 = X[4]
+        #     cal_dtw(x1,x2)
+        # X = scaler.fit_transform(X)
+        y_pred = odds_cluster_DBSCAN(X)
+        print(y_pred)
+        labels = set(y_pred)
+        path = file_util.get_figure_path("slot",str(uid),"cluster")
+        if os.path.exists(path):
+            shutil.rmtree(path)
+        for label in labels:
+            path = file_util.get_figure_path("slot",str(uid),"cluster",str(label))
+            print("label: %s" %label)
+            x_tmp = X[y_pred == label, :]
+            for i,x in enumerate(x_tmp):
+                plt.plot(x)
+                plt.savefig(os.path.join(path, str(i)))
+                plt.cla()
+
+        # score = corelation(X,Y)
+        # x_ = range(len(score))
+        # # features = ["coin", "earn", "earn/coin", "mean", "variance", "skewness", "kurtosis", "min", "max"]
+        # plt.plot(x_, score, '--o', label = str(uid))
+
+        # x += (data_pay + data_not_pay)
+        # y += ([1] * len(data_pay) + [0] * len(data_not_pay))
+        
+        # train(X, Y, seq_len, uid)
+
+        # data_pay_avg = np.mean(data_pay, axis = 0)[3:]
+        # data_not_pay_avg = np.mean(data_not_pay, axis = 0)[3:]
+        # x_tick = range(len(data_pay_avg))
+        # plt.plot(x_tick,data_pay_avg, label = "pay")
+        # plt.plot(x_tick,data_not_pay_avg, label ="not_pay")
+        # plt.gca().set_xlabel("features")
+        # plt.legend(loc = "upper right")
+        # features = ["coin", "earn", "earn/coin", "mean", "variance", "skewness", "kurtosis", "min", "max"]
+        # plt.xticks(x_tick, features, rotation = -30)
+        # path = file_util.get_figure_path("slot",str(uid))
+        # plt.savefig(os.path.join(path, "odds_stat_pay_and_no_pay_limited_by_coin"))
+        # plt.cla()
+        # 
+    # x = np.array(x)
+    # y = np.array(y)
+    # print(np.sum(y))
+    # score = corelation(x,y)
+    # x_ = range(len(score))
+    # features = ["coin", "earn", "earn/coin", "mean", "variance", "skewness", "kurtosis", "min", "max"]
+    # plt.plot(x_, score, '--o', label = "total")
+    # plt.xticks(x_, features, rotation = -30)
+    # plt.legend(loc = "upper right")
+    # print(score)
     # plt.show()
-
-
-
-
+    # print("\n")
 
 # def dirlist(path, allfile):
 #     filelist = os.listdir(path)
