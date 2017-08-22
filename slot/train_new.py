@@ -162,7 +162,7 @@ if __name__ == '__main__':
     # 从文件里读
     import pickle
     vector_file = "vector.data"
-    if os.path.exists(vector_file):
+    if not os.path.exists(vector_file):
         uid_2_vectors = mv_reader.gen_uid_vector(seq_len, max_len)
         with open(vector_file, 'wb') as f:
             pickle.dump(uid_2_vectors, f)
@@ -209,7 +209,7 @@ if __name__ == '__main__':
                 cr_X_label[pos] = cr_X_label[pos]
                 total[pos] = cr_lv_total
 
-            gcf = plt.figure(fig_count, figsize = (10,4))
+            gcf = plt.figure(fig_count, figsize=(10, 4))
             ax = plt.gca()
             axisx = ax.xaxis
             ax.set_title(title)
@@ -242,8 +242,9 @@ if __name__ == '__main__':
                     # plt.text(pos, y[pos], "total: %s" % total[pos])
                     plt.text(pos, y[pos], total[pos])
 
-            plt.text(15, 1, s='Numbers above curve are total counts', color='blue', va = "top", ha ="center") 
-            # plt.annotate('total counts above curve',xy=(0,0),xytext=(0.2,0.2),arrowprops=dict(facecolor='blue', shrink=0.1))  
+            plt.text(15, 1, s='Numbers above curve are total counts',
+                     color='blue', va="top", ha="center")
+            # plt.annotate('total counts above curve',xy=(0,0),xytext=(0.2,0.2),arrowprops=dict(facecolor='blue', shrink=0.1))
 
             ax.legend(loc="upper right")
             # plt.show()
