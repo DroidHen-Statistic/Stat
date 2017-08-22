@@ -4,6 +4,12 @@ import os
 import sys
 import matplotlib.pyplot as plt
 # from collections import defaultdict
+head_path = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))
+# print(head_path)
+sys.path.append(head_path)
+import config
+from utils import *
 
 
 # 散点图，可以用y指定颜色
@@ -11,6 +17,9 @@ X1=[1,2,3,4,5]
 X2=[3,4,5,6,7]
 y=[0,1,0,1,2]
 plt.scatter(X1, X2, marker='o', c=y)
+figure_path = file_util.get_figure_path("slot", "machine_used")
+file_name = os.path.join(figure_path, "123.png")
+plt.savefig(file_name)
 plt.show()
 exit()
 
@@ -37,9 +46,8 @@ print(txt)
 
 # for t in txt:
 #     print(t)
-
 plt.show()
-# exit()
+exit()
 
 # 给fig添加对象
 x = [1,2,3,4]
@@ -222,3 +230,40 @@ ax.set_xticklabels(['one','two','three','four','five'],rotation=45,fontsize=    
 ax.set_title('Demo Figure')
 ax.set_xlabel('Time')
 plt.show()
+exit()
+
+# 设置字体的样子，图片大小
+gcf = plt.figure(figsize = (10,4))
+#gcf = plt.figure()
+ax = plt.gca()
+axisx = ax.xaxis
+for label in axisx.get_ticklabels():
+     label.set_color("red")
+     label.set_rotation(45) # 设置旋转字体
+ax.set_title("title")
+ax.set_xlabel("Lv group")
+# xlim=(0, X_label[-1])
+# ax.set_xlim(xlim)
+y_expect = [1,2,3]
+cr_X_label = [0,1,2]
+ax.xaxis.set_major_locator(plt.MultipleLocator(1))
+ax.set_ylabel("use counts")
+ax.plot(y_expect, '--.', label="except")
+
+
+# 加上标注，要改这个不能直接用
+for pos in range(len(y_expect)):
+    # plt.text(pos, y , total[pos] ,color='b',fontsize=2)
+    if total[pos] > 0:
+        # plt.text(pos, y[pos], "total: %s" % total[pos])
+        plt.text(pos, y_expect[pos], pos + 10, fontsize=7)  # 在pos, y[pos]的位置显示pos+10，字体大小为7
+
+
+# ax.plot(y, '-.', label="real")
+ax.set_xticklabels([-1, 0] + cr_X_label)
+plt.annotate('total counts above curve',xy=(0,0),xytext=(0.2,0.2),arrowprops=dict(facecolor='blue', shrink=0.1))  
+gcf.savefig(file_name, dpi='160') # 保存，分辨率
+
+
+# plt.close(0) # 关闭第0个
+plt.close('all') #关闭所有
