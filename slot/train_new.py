@@ -246,7 +246,7 @@ if __name__ == '__main__':
             # plt.annotate('total counts above curve',xy=(0,0),xytext=(0.2,0.2),arrowprops=dict(facecolor='blue', shrink=0.1))  
 
             ax.legend(loc="upper right")
-            plt.show()
+            # plt.show()
             file_name = os.path.join(figure_path, title + ".png")
             # gcf.savefig(file_name, dpi= 160)
             gcf.savefig(file_name)
