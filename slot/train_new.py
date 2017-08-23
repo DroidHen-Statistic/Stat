@@ -322,7 +322,7 @@ if __name__ == '__main__':
              #  print(Machine_Vector_Reader.lv_group_pos(cr_lv))
                 cr_lv_total = lv_total[payed][cr_lv]
                 if pos >= len(y) or pos < 0:
-                    print("cr_mid:%s pos:%s lv:%s" %
+                    print("err mid:%s pos:%s lv:%s" %
                           (str(cr_mid), str(pos), str(cr_lv)))
                     continue
                 y[pos] = round(count / cr_lv_total, 4)
@@ -371,8 +371,8 @@ if __name__ == '__main__':
                     # plt.text(pos, y[pos], "total: %s" % total[pos])
                     plt.text(pos, y[pos], total[pos])
 
-            plt.text(15, 1, s='Numbers above curve are total counts',
-                     color='blue', va="top", ha="center")
+            # plt.text(15, 1, s='Numbers above curve are total counts',
+            #          color='blue', va="top", ha="center")
             # plt.annotate('total counts above curve',xy=(0,0),xytext=(0.2,0.2),arrowprops=dict(facecolor='blue', shrink=0.1))
 
             ax.legend(loc="upper right")
