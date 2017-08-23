@@ -241,7 +241,7 @@ class Machine_Vector_Reader(v_reader):
         # print(drop_dir)
         file_machine = os.path.join(drop_dir, "machine_id.txt")
         if (os.path.exists(file_machine)):
-            file_lv = os.path.join(file_dir, "level.txt")
+            file_lv = os.path.join(drop_dir, "level.txt")
             self._do_read_user_data(
                 file_machine, file_lv, seq_len, max_len, mid_lv_count, payed=1)
             #         # [cr_mid] += 1
@@ -307,7 +307,7 @@ if __name__ == '__main__':
     fig_count = 0
     for payed, cr_mid_lv_count in enumerate(mid_lv_count):
         # title_raw = r"machine:%d" + (" (pay)" if payed else "")
-        postfix = "(pay)" if payed else ""
+        postfix = "(pay)" if payed else "(no_pay)"
         for cr_mid, lv_count in cr_mid_lv_count.items():
             if len(lv_count) <= 0:
                 continue
