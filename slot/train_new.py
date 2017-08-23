@@ -16,6 +16,19 @@ from collections import defaultdict
 
 import copy
 
+# class MyClass():
+#         classVar = 2
+#         def test(self):
+#                 print( "self:%s class:%s" % (id(self.classVar) , id(MyClass.classVar)))
+#                 self.classVar = self.classVar+1
+#                 # print(id(self.classVar))
+#                 # print(self.classVar)
+# a = MyClass()
+# a.test()
+# a.test()
+# # MyClass().test()
+# exit()
+
 #plt.figure(2)
 
 def _gen_defaultdict():
@@ -35,8 +48,13 @@ class Machine_Vector_Reader(v_reader):
     Machine_Id_2_Lv = [(1, 1), (4, 2), (5, 4), (6, 5), (7, 6), (11, 7), (8, 10), (10, 13), (9, 16), (2, 19), (3, 22), (12, 25), (13, 28), (17, 31), (14, 34), (16, 37), (15, 40), (
         18, 43), (19, 46), (20, 49), (21, 52), (22, 55), (23, 58), (24, 61), (25, 64), (26, 67), (27, 70), (28, 73), (29, 76), (30, 79), (31, 82), (32, 85), (33, 88), (34, 91)]
 
+    Mid_2_Lv_Pos_Dict = {} # mid第几个等级开发
     Lv_Group_Machine_Count = defaultdict(int)  # 等级段开放的机器个数
     Lv_Group_Machine_Percent = defaultdict(float)   # 等级段开放的机器比例，开放两个就是50%
+
+    def print_mid_unlock_lv(self):
+        a = self.Machine_Id_2_Lv
+        print( "mid unlock lv:%s" % a)
 
     @staticmethod
     def lv_group_list():
@@ -79,8 +97,18 @@ class Machine_Vector_Reader(v_reader):
         # return Machine_Vector_Reader.max_group
         return pre_lv
 
-    def __init__(self, input_dir='null', out_put_dir='null'):
-        v_reader.__init__(self, input_dir, out_put_dir)
+    @staticmethod
+    def calc_mid_2_start_lv_pos():
+        pos = 0
+        for m_id, cr_lv in Machine_Vector_Reader.Machine_Id_2_Lv:
+            Machine_Vector_Reader.Mid_2_Lv_Pos_Dict[m_id] = pos
+            # Machine_Vector_Reader.Mid_2_Lv_Pos_Dict[m_id] = pos
+            pos += 1
+
+    @staticmethod
+    def mid_2_start_lv_pos(mid):
+        return  Machine_Vector_Reader.Mid_2_Lv_Pos_Dict[mid]
+        
 
     @staticmethod
     def calc_lv_group_m_count():
@@ -90,6 +118,9 @@ class Machine_Vector_Reader(v_reader):
             Machine_Vector_Reader.Lv_Group_Machine_Percent[
                 cr_lv] = round(1. / m_count, 4)
         # Machine_Vector_Reader.Lv_Group_Machine_Count[]
+
+    def __init__(self, input_dir='null', out_put_dir='null'):
+        v_reader.__init__(self, input_dir, out_put_dir)
 
     """
     读玩家数据，继承类可以重写这个函数
@@ -159,7 +190,11 @@ if __name__ == '__main__':
     # d = {3:33, 4:44}
     # k = other_util.flip_dict(d)
     # print(k)
+    # Machine_Vector_Reader.calc_mid_2_start_lv(3)
+    Machine_Vector_Reader.calc_mid_2_start_lv_pos()
     mv_reader = Machine_Vector_Reader()
+    mv_reader.print_mid_unlock_lv()
+    # exit()
     mv_reader.calc_lv_group_m_count()
     seq_len = 50
     max_len = 50
@@ -237,6 +272,12 @@ if __name__ == '__main__':
             # ax.set_xlim(xlim)
             ax.xaxis.set_major_locator(plt.MultipleLocator(1))
             ax.set_ylabel("use percent")
+
+            start_pos = Machine_Vector_Reader.mid_2_start_lv_pos(cr_mid)
+            cr_y_expect = [0.] * len(y)
+            for i in range(start_pos, len(y)):
+                cr_y_expect[i] = y_expect[i]
+
             ax.plot(y_expect, '--.', label="except")
             ax.plot(y, '-', label="real")
 

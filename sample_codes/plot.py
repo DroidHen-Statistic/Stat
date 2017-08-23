@@ -11,6 +11,8 @@ sys.path.append(head_path)
 import config
 from utils import *
 
+plt.switch_backend('agg') # 服务器上跑一定要加这句，平时可以不要
+
 
 # 散点图，可以用y指定颜色
 X1=[1,2,3,4,5]
