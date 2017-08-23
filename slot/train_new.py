@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-plt.switch_backend('agg') # 服务器上跑
+plt.switch_backend('agg')  # 服务器上跑
 import os
 import sys
 from ready_for_train import Vector_Reader as v_reader
@@ -29,7 +29,8 @@ import copy
 # # MyClass().test()
 # exit()
 
-#plt.figure(2)
+# plt.figure(2)
+
 
 def _gen_defaultdict():
     # return copy.copy(defaultdict(int))
@@ -48,13 +49,13 @@ class Machine_Vector_Reader(v_reader):
     Machine_Id_2_Lv = [(1, 1), (4, 2), (5, 4), (6, 5), (7, 6), (11, 7), (8, 10), (10, 13), (9, 16), (2, 19), (3, 22), (12, 25), (13, 28), (17, 31), (14, 34), (16, 37), (15, 40), (
         18, 43), (19, 46), (20, 49), (21, 52), (22, 55), (23, 58), (24, 61), (25, 64), (26, 67), (27, 70), (28, 73), (29, 76), (30, 79), (31, 82), (32, 85), (33, 88), (34, 91)]
 
-    Mid_2_Lv_Pos_Dict = {} # mid第几个等级开发
+    Mid_2_Lv_Pos_Dict = {}  # mid第几个等级开发
     Lv_Group_Machine_Count = defaultdict(int)  # 等级段开放的机器个数
     Lv_Group_Machine_Percent = defaultdict(float)   # 等级段开放的机器比例，开放两个就是50%
 
     def print_mid_unlock_lv(self):
         a = self.Machine_Id_2_Lv
-        print( "mid unlock lv:%s" % a)
+        print("mid unlock lv:%s" % a)
 
     @staticmethod
     def lv_group_list():
@@ -107,8 +108,7 @@ class Machine_Vector_Reader(v_reader):
 
     @staticmethod
     def mid_2_start_lv_pos(mid):
-        return  Machine_Vector_Reader.Mid_2_Lv_Pos_Dict[mid]
-        
+        return Machine_Vector_Reader.Mid_2_Lv_Pos_Dict[mid]
 
     @staticmethod
     def calc_lv_group_m_count():
@@ -122,6 +122,57 @@ class Machine_Vector_Reader(v_reader):
     def __init__(self, input_dir='null', out_put_dir='null'):
         v_reader.__init__(self, input_dir, out_put_dir)
 
+    def _do_read_user_data(self, file_machine, file_lv, seq_len, max_len, mid_lv_count, payed):
+        """
+        max_len : 原始文件的最大序列长度
+        """
+        # mid_lv_count = [defaultdict(_gen_defaultdict),
+        #                 defaultdict(_gen_defaultdict)]
+        if (not os.path.exists(file_machine)):
+            return False
+        f_machine = open(file_machine, 'r')
+        f_lv = open(file_lv, 'r')
+#            has_zero = False
+        while True:
+            line = f_machine.readline().strip()
+            if not line:
+                break
+            lv_line = f_lv.readline().strip()
+
+            line = line.split(" ")
+            lv_line = lv_line.split(" ")
+            # if len(line) < seq_len or line[-1] == "-1":  # 被抛掉的数据
+            if line[-1] == '-1':
+                continue
+            cr_len = len(line)
+            # for in line[::-1]
+            for i in range(seq_len):
+                # cr_index = max(0, cr_len - seq_len + i)
+                cr_index = cr_len - seq_len + i
+                if cr_index >= cr_len or cr_index < 0:
+                    continue
+                # print(line[cr_index])
+                try:
+                    cr_mid = int(float(line[cr_index]))
+                    cr_lv = int(float(lv_line[cr_index]))
+                    cr_lv_group = self.lv_2_group(cr_lv)
+                    # if cr_lv_group >= len(Machine_Vector_Reader.Machine_Id_2_Lv) or cr_lv_group <= 0 :
+#                            print("uid lv:%s group:%s" % (cr_lv, cr_lv_group))
+#                           has_zero = True
+                    #    continue
+                    mid_lv_count[payed][cr_mid][cr_lv_group] += 1
+                except:
+                    break
+            #         # [cr_mid] += 1
+            # f_machine.close()
+            # f_bonus.close()
+            # f_coin.close()
+            # f_time.close()
+        # return [data, lable]
+        f_machine.close()
+        f_lv.close()
+        return True
+
     """
     读玩家数据，继承类可以重写这个函数
     """
@@ -132,6 +183,12 @@ class Machine_Vector_Reader(v_reader):
         """
         # pay_count = 0
         # no_pay_count = 0
+
+        arr_dir = file_dir.split(os.path.sep)
+        uid = arr_dir[-1]
+        # print(uid)
+        # exit()
+
         mid_lv_count = [defaultdict(_gen_defaultdict),
                         defaultdict(_gen_defaultdict)]
         for payed in range(2)[::-1]:
@@ -141,48 +198,59 @@ class Machine_Vector_Reader(v_reader):
             file_machine = os.path.join(file_dir, pre_fix + "machine_id.txt")
             if (not os.path.exists(file_machine)):
                 continue
-            f_machine = open(file_machine, 'r')
-
             file_lv = os.path.join(file_dir, pre_fix + "level.txt")
-            f_lv = open(file_lv, 'r')
+            self._do_read_user_data(
+                file_machine, file_lv, seq_len, max_len, mid_lv_count, payed)
 
-#            has_zero = False
-            while True:
-                line = f_machine.readline().strip()
-                if not line:
-                    break
-                lv_line = f_lv.readline().strip()
+            # f_machine = open(file_machine, 'r')
+            # f_lv = open(file_lv, 'r')
+# #            has_zero = False
+#             while True:
+#                 line = f_machine.readline().strip()
+#                 if not line:
+#                     break
+#                 lv_line = f_lv.readline().strip()
 
-                line = line.split(" ")
-                lv_line = lv_line.split(" ")
-                # if len(line) < seq_len or line[-1] == "-1":  # 被抛掉的数据
-                if line[-1] == '-1':
-                    break
-                cr_len = len(line)
-                # for in line[::-1]
-                for i in range(seq_len):
-                    # cr_index = max(0, cr_len - seq_len + i)
-                    cr_index = cr_len - seq_len + i
-                    if cr_index >= cr_len or cr_index < 0:
-                        continue
-                    # print(line[cr_index])
-                    try:
-                        cr_mid = int(float(line[cr_index]))
-                        cr_lv = int(float(lv_line[cr_index]))
-                        cr_lv_group = self.lv_2_group(cr_lv)
-                        #if cr_lv_group >= len(Machine_Vector_Reader.Machine_Id_2_Lv) or cr_lv_group <= 0 :
-#                            print("uid lv:%s group:%s" % (cr_lv, cr_lv_group))
- #                           has_zero = True
-                        #    continue
-                        mid_lv_count[payed][cr_mid][cr_lv_group] += 1
-                    except:
-                        break
+#                 line = line.split(" ")
+#                 lv_line = lv_line.split(" ")
+#                 # if len(line) < seq_len or line[-1] == "-1":  # 被抛掉的数据
+#                 if line[-1] == '-1':
+#                     break
+#                 cr_len = len(line)
+#                 # for in line[::-1]
+#                 for i in range(seq_len):
+#                     # cr_index = max(0, cr_len - seq_len + i)
+#                     cr_index = cr_len - seq_len + i
+#                     if cr_index >= cr_len or cr_index < 0:
+#                         continue
+#                     # print(line[cr_index])
+#                     try:
+#                         cr_mid = int(float(line[cr_index]))
+#                         cr_lv = int(float(lv_line[cr_index]))
+#                         cr_lv_group = self.lv_2_group(cr_lv)
+#                         # if cr_lv_group >= len(Machine_Vector_Reader.Machine_Id_2_Lv) or cr_lv_group <= 0 :
+# #                            print("uid lv:%s group:%s" % (cr_lv, cr_lv_group))
+#  #                           has_zero = True
+#                         #    continue
+#                         mid_lv_count[payed][cr_mid][cr_lv_group] += 1
+#                     except:
+#                         break
+        # 读drop out的pay记录
+        drop_dir = file_dir + os.path.sep + '..' + os.path.sep + \
+            '__waring__' + os.path.sep + 'drop_pay' + os.path.sep + uid
+        # print(drop_dir)
+        file_machine = os.path.join(drop_dir, "machine_id.txt")
+        if (os.path.exists(file_machine)):
+            file_lv = os.path.join(file_dir, "level.txt")
+            self._do_read_user_data(
+                file_machine, file_lv, seq_len, max_len, mid_lv_count, payed=1)
             #         # [cr_mid] += 1
             # f_machine.close()
             # f_bonus.close()
             # f_coin.close()
             # f_time.close()
         # return [data, lable]
+        # exit()
         return mid_lv_count
 
 
@@ -214,14 +282,14 @@ if __name__ == '__main__':
 
     lv_total = defaultdict(_gen_defaultdict)
     for cr_uid, vector in uid_2_vectors.items():
-#        if int(cr_uid) != 1650378:
-#            continue
-#        print(cr_uid)
+        #        if int(cr_uid) != 1650378:
+        #            continue
+        #        print(cr_uid)
         for payed, cr_mid_lv_count in enumerate(vector):
             for cr_mid, lv_count in cr_mid_lv_count.items():
                 for cr_lv, count in lv_count.items():
                     if cr_lv == 0:
-                        print( "uid:%s mid:%s lv:0" % (cr_uid, cr_mid))
+                        print("uid:%s mid:%s lv:0" % (cr_uid, cr_mid))
                         continue
                     mid_lv_count[payed][cr_mid][cr_lv] += count
                     lv_total[payed][cr_lv] += count
@@ -248,20 +316,21 @@ if __name__ == '__main__':
             cr_X_label = copy.copy(X_label)
             y = [0] * len(y_expect)
             total = ['0'] * len(y_expect)
-            #print(lv_count)
+            # print(lv_count)
             for cr_lv, count in lv_count.items():
                 pos = Machine_Vector_Reader.lv_group_pos(cr_lv)
              #  print(Machine_Vector_Reader.lv_group_pos(cr_lv))
                 cr_lv_total = lv_total[payed][cr_lv]
                 if pos >= len(y) or pos < 0:
-                    print("cr_mid:%s pos:%s lv:%s" % ( str(cr_mid), str(pos), str(cr_lv)))
-                    continue 
+                    print("cr_mid:%s pos:%s lv:%s" %
+                          (str(cr_mid), str(pos), str(cr_lv)))
+                    continue
                 y[pos] = round(count / cr_lv_total, 4)
                 # cr_X_label[pos] = str(cr_X_label[pos]) + "(%s)" % cr_lv_total
                 cr_X_label[pos] = cr_X_label[pos]
                 total[pos] = "1k+" if cr_lv_total > 1000 else str(cr_lv_total)
                # total[pos] = cr_lv_total
-           
+
             #gcf = plt.figure(fig_count)
             gcf = plt.figure(fig_count, figsize=(12, 6))
             ax = plt.gca()
