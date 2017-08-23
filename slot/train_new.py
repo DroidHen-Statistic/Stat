@@ -278,7 +278,7 @@ if __name__ == '__main__':
             for i in range(start_pos, len(y)):
                 cr_y_expect[i] = y_expect[i]
 
-            ax.plot(y_expect, '--.', label="except")
+            ax.plot(cr_y_expect, '--.', label="except")
             ax.plot(y, '-', label="real")
 
             ax.set_xticklabels([-1, 0] + cr_X_label)
