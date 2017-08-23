@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+plt.switch_backend('agg') # 服务器上跑
 import os
 import sys
 from ready_for_train import Vector_Reader as v_reader
@@ -15,6 +16,7 @@ from collections import defaultdict
 
 import copy
 
+#plt.figure(2)
 
 def _gen_defaultdict():
     # return copy.copy(defaultdict(int))
@@ -113,6 +115,7 @@ class Machine_Vector_Reader(v_reader):
             file_lv = os.path.join(file_dir, pre_fix + "level.txt")
             f_lv = open(file_lv, 'r')
 
+#            has_zero = False
             while True:
                 line = f_machine.readline().strip()
                 if not line:
@@ -136,6 +139,10 @@ class Machine_Vector_Reader(v_reader):
                         cr_mid = int(float(line[cr_index]))
                         cr_lv = int(float(lv_line[cr_index]))
                         cr_lv_group = self.lv_2_group(cr_lv)
+                        #if cr_lv_group >= len(Machine_Vector_Reader.Machine_Id_2_Lv) or cr_lv_group <= 0 :
+#                            print("uid lv:%s group:%s" % (cr_lv, cr_lv_group))
+ #                           has_zero = True
+                        #    continue
                         mid_lv_count[payed][cr_mid][cr_lv_group] += 1
                     except:
                         break
@@ -172,10 +179,15 @@ if __name__ == '__main__':
 
     lv_total = defaultdict(_gen_defaultdict)
     for cr_uid, vector in uid_2_vectors.items():
-        print(cr_uid)
+#        if int(cr_uid) != 1650378:
+#            continue
+#        print(cr_uid)
         for payed, cr_mid_lv_count in enumerate(vector):
             for cr_mid, lv_count in cr_mid_lv_count.items():
                 for cr_lv, count in lv_count.items():
+                    if cr_lv == 0:
+                        print( "uid:%s mid:%s lv:0" % (cr_uid, cr_mid))
+                        continue
                     mid_lv_count[payed][cr_mid][cr_lv] += count
                     lv_total[payed][cr_lv] += count
         # break
@@ -200,16 +212,23 @@ if __name__ == '__main__':
             # title += str(cr_mid)
             cr_X_label = copy.copy(X_label)
             y = [0] * len(y_expect)
-            total = [0] * len(y_expect)
+            total = ['0'] * len(y_expect)
+            #print(lv_count)
             for cr_lv, count in lv_count.items():
                 pos = Machine_Vector_Reader.lv_group_pos(cr_lv)
+             #  print(Machine_Vector_Reader.lv_group_pos(cr_lv))
                 cr_lv_total = lv_total[payed][cr_lv]
+                if pos >= len(y) or pos < 0:
+                    print("cr_mid:%s pos:%s lv:%s" % ( str(cr_mid), str(pos), str(cr_lv)))
+                    continue 
                 y[pos] = round(count / cr_lv_total, 4)
                 # cr_X_label[pos] = str(cr_X_label[pos]) + "(%s)" % cr_lv_total
                 cr_X_label[pos] = cr_X_label[pos]
-                total[pos] = cr_lv_total
-
-            gcf = plt.figure(fig_count, figsize=(10, 4))
+                total[pos] = "1k+" if cr_lv_total > 1000 else str(cr_lv_total)
+               # total[pos] = cr_lv_total
+           
+            #gcf = plt.figure(fig_count)
+            gcf = plt.figure(fig_count, figsize=(12, 6))
             ax = plt.gca()
             axisx = ax.xaxis
             ax.set_title(title)
@@ -238,7 +257,7 @@ if __name__ == '__main__':
             # 加上标注
             for pos in range(len(y)):
                 # plt.text(pos, y , total[pos] ,color='b',fontsize=2)
-                if total[pos] > 0:
+                if total[pos] != '0':
                     # plt.text(pos, y[pos], "total: %s" % total[pos])
                     plt.text(pos, y[pos], total[pos])
 
