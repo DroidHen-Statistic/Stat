@@ -44,23 +44,26 @@ class _point():
         self.y =y
 
 
-        # 持久化
+# 持久化
+shoplist = ['apple', 'mango', 'carrot']
+shoplist = np.zeros((3,5))
+shoplist = _point(3, 4)
+
 import pickle
 shoplistfile = "shoplist.data"
 #print(type(movie_file_after_read))
 #print(movie_file_after_read)
 
-shoplist = ['apple', 'mango', 'carrot']
-shoplist = np.zeros((3,5))
-shoplist = _point(3, 4)
+# 使用pickle
 with open(shoplistfile, 'wb') as f:
     pickle.dump(shoplist, f)
-
-np.save("shoplist.npy", shoplist)
-
-k = np.load("shoplist.npy")
 with open("shoplist.data","rb") as f:
     k2 = pickle.load(f)
+
+# 使用numpy
+np.save("shoplist.npy", shoplist)
+k = np.load("shoplist.npy")
+
 
 
 print(type(k))
