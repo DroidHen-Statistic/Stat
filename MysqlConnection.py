@@ -12,7 +12,7 @@ class MysqlConnection(object):
         result = []
         #获取一个游标
         with self.__connection.cursor() as cursor:
-            cout=cursor.execute(sql,values)
+            cout = cursor.execute(sql,values)
             self.__connection.commit()
             for row in cursor.fetchall():
                 #result.append(list(row))

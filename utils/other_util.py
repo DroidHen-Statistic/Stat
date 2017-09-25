@@ -178,3 +178,58 @@ class ScoreEstimator(BaseEstimator):
         score = cross_val_score(self.est_, X,
                                         y, scoring=self.scoring, cv=self.cv)
         return score
+
+
+
+
+import socket 
+import struct
+def ip2long(ipstr): 
+    return struct.unpack("!I", socket.inet_aton(ipstr))[0]
+
+def long2ip(ip): 
+    return socket.inet_ntoa(struct.pack("!I", ip))
+
+import csv
+class IPDB(object):
+    def __init__(self, filename):
+        self.ipslist = []
+        self.ipelist = []
+        self.countries = []
+        self.length = 0
+        with open(filename, 'r') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                ips = row[0]
+                ipe = row[1]
+                country = row[2]
+                self.ipslist.append(ip2long(ips))
+                self.ipelist.append(ip2long(ipe))
+                self.countries.append(country)
+        self.length = len(self.ipslist)
+
+    def findcc(self, s, e, ip):
+        if (s > e):
+            return false
+        n = int((s + e) / 2)
+        r = self.compare(ip, n)
+        if (r == -1):
+            return self.findcc(s, n - 1, ip)
+        elif (r == 1):
+            return self.findcc(n + 1, e, ip)
+        else:
+            return self.countries[n]
+
+    def ip2cc(self, ip):
+        s = 0
+        ip = ip2long(ip)
+        e = self.length;
+        ret = self.findcc(s, e - 1, ip)
+        return ret
+
+    def compare(self, ip, index):
+        if ip < self.ipslist[index]:
+            return -1
+        elif ip > self.ipelist[index]:
+            return 1
+        return 0

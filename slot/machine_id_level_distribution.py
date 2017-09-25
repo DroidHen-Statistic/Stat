@@ -80,22 +80,23 @@ def read_from_parse_result():
 
     uid_2_vectors = {}
     data = [defaultdict(lambda: defaultdict(float)), defaultdict(lambda: defaultdict(float))]  # 0没充值，1充值
+
     dir_list = os.listdir(base_dir)
     for cr_uid in dir_list:
-        payed = 0
+        if cr_uid == "__waring__":
+            continue
+        user_data = [defaultdict(lambda: defaultdict(float)), defaultdict(lambda: defaultdict(float))]
         user_dir = os.path.join(base_dir, cr_uid)
         if not os.path.isdir(user_dir):
             continue
 
-        for file_type in range(2):
+        for payed in range(2):
             pre_fix = ""
-            if file_type == 0:
+            if payed == 1:
                 pre_fix = "pay_"
             file_machine_id = os.path.join(user_dir, pre_fix + "machine_id.txt")
             file_level = os.path.join(user_dir, pre_fix + "level.txt")
             if os.path.exists(file_machine_id):
-                if file_type == 0:
-                    payed = 1
                 f_machine_id = open(file_machine_id, 'r')
                 f_level = open(file_level, 'r')
                 while True:
@@ -105,19 +106,18 @@ def read_from_parse_result():
                         break
                     line_machine_id = line_machine_id.split(" ")
                     line_level = line_level.split(" ")
-                    if line_machine_id[-1] == -1 or line_level[-1] == -1:
+                    if line_machine_id[-1] == "-1" or line_level[-1] == "-1":
+                    # if line_machine_id[-1] == "-1":
                         continue
                     for i in range(len(line_machine_id)):
                         data[payed][line_level[i]][line_machine_id[i]] += 1
+                        user_data[payed][line_level[i]][line_machine_id[i]] += 1
                 f_machine_id.close()
-                f_level.close()
+                f_level.close()  
 
-    base_dir = os.path.join(base_dir, "__warning__", "drop_pay")
-    for cr_uid in dir_list:
+        drop_dir = os.path.join(base_dir, "__waring__", "drop_pay")
         payed = 0
-        user_dir = os.path.join(base_dir, cr_uid)
-        if not os.path.isdir(user_dir):
-            continue
+        user_dir = os.path.join(drop_dir, cr_uid)
         file_machine_id = os.path.join(user_dir, "machine_id.txt")
         file_level = os.path.join(user_dir, "level.txt")
         if os.path.exists(file_machine_id):
@@ -130,13 +130,58 @@ def read_from_parse_result():
                     break
                 line_machine_id = line_machine_id.split(" ")
                 line_level = line_level.split(" ")
-                if line_machine_id[-1] == -1 or line_level[-1] == -1:
+                if line_machine_id[-1] == "-1" or line_level[-1] == "-1":
                     continue
                 for i in range(len(line_machine_id)):
                     data[1][line_level[i]][line_machine_id[i]] += 1
+                    user_data[1][line_level[i]][line_machine_id[i]] += 1
             f_machine_id.close()
             f_level.close()
 
+        uid_2_vectors[cr_uid] = user_data
+
+        # result = []
+        # with open("wja_data.txt",'a') as f:
+        #     f.write("uid: " + cr_uid + ":\n")
+        #     for payed, lv_mid_data in enumerate(user_data):
+        #         # f.write("payed: " + str(payed) + ":\n")
+        #         # tmp_lv = sorted(lv_mid_data.items(), key = lambda x: x[0])
+        #         # for lv_mid in tmp_lv:
+        #         #     f.write("lv: " + str(lv_mid[0] + "\n"))
+        #         #     f.write(str(list(sorted(lv_mid[1].values()))))
+        #         #     f.write("\n")
+        #         for lv, mid_count in lv_mid_data.items():
+        #             result += list(mid_count.values())
+        #     f.write(str(sorted([int(x) for x in result])))
+        #     f.write("\n")
+
+
+
+    # base_dir = os.path.join(base_dir, "__waring__", "drop_pay")
+    # for cr_uid in dir_list:
+    #     payed = 0
+    #     user_dir = os.path.join(base_dir, cr_uid)
+    #     if not os.path.isdir(user_dir):
+    #         continue
+    #     file_machine_id = os.path.join(user_dir, "machine_id.txt")
+    #     file_level = os.path.join(user_dir, "level.txt")
+    #     if os.path.exists(file_machine_id):
+    #         print("origin write")
+    #         f_machine_id = open(file_machine_id, 'r')
+    #         f_level = open(file_level, 'r')
+    #         while True:
+    #             line_machine_id = f_machine_id.readline().strip()
+    #             line_level = f_level.readline().strip()
+    #             if not line_machine_id:
+    #                 break
+    #             line_machine_id = line_machine_id.split(" ")
+    #             line_level = line_level.split(" ")
+    #             if line_machine_id[-1] == -1 or line_level[-1] == -1:
+    #                 continue
+    #             for i in range(len(line_machine_id)):
+    #                 data[1][line_level[i]][line_machine_id[i]] += 1
+    #         f_machine_id.close()
+    #         f_level.close()
     return data
 
 def level_distribution():
@@ -324,8 +369,8 @@ if __name__ == '__main__':
     unlock_level = [0,1,2,4,5,6,7,10,13,16,19,22,25,28,31,34,37,40,43,46,49,52,55,58,61,64,67,70,73,76,79,82,85,88,91]
     unlock_id = [0,1,4,5,6,7,11,8,10,9,2,3,12,13,17,14,16,15,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34]
     id_to_level = {}
-    print(len(unlock_level))
-    print(len(unlock_id))
+    # print(len(unlock_level))
+    # print(len(unlock_id))
     for i in range(len(unlock_level)):
         id_to_level[str(float(unlock_id[i]))] = i
     id_to_level['-1'] = 0
@@ -337,6 +382,9 @@ if __name__ == '__main__':
     total = defaultdict(lambda: defaultdict(float))
     for key in keys:
         total[key] = reduce(other_util.union_dict, [obj.get(key, defaultdict(float)) for obj in data])
+
+    result = []
+
 
     total_sorted = sorted(total.items(), key = lambda x : float(x[0]))
     level_count_total = {}
@@ -357,9 +405,16 @@ if __name__ == '__main__':
         sum_count += sum(machine_ids.values(),0)
         level_range_mid_count_tmp = other_util.union_dict(level_range_mid_count_tmp, machine_ids)
     level_count_total[unlock_level[-1]] = sum_count
-    level_range_mid_count[unlock_level[-1]] = level_range_mid_count_tmp
+    level_range_mid_count[unlock_level[-1]] = level_range_mid_count_tmp #这里存的是等级分组后的各个mid的count值
     # print(level_range_mid_count)
     # 
+    with open("wja_data_total.txt", 'w') as f:
+        for level, mid_count in level_range_mid_count.items():
+            result += [int(c) for c in list(mid_count.values())]
+        f.write(str(sorted(result)))
+        f.write("\n")
+    exit()
+
     path = file_util.get_figure_path("slot","machine_level_ratio","all_level")
     mids = sorted(mids, key = lambda x : float(x))
     levels = sorted(list(total.keys()), key = lambda x : float(x))
