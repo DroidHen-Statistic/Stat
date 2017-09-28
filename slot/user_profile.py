@@ -103,7 +103,6 @@ class UserProfile(object):
             self.user_info[uid]["first_login_time"] = time
             self.profiles[uid]["login_times"] = 1
             self.profiles[uid]["spin_times"] = 0
-            self.profiles[uid]["locale"] = locale
         else:
             login_interval = (time - self.user_info[uid]["last_login_time"]).total_seconds()
             login_times = self.profiles[uid]["login_times"]
@@ -123,7 +122,7 @@ class UserProfile(object):
             self.user_info[uid]["day_active_time"] = 0
         else:
             self.user_info[uid]["day_active_time"] = day_active_time + current_active_time
-
+        self.profiles[uid]["locale"] = locale
         self.user_info[uid]["current_active_time"] = 0
         self.user_info[uid]["last_login_time"] = time
         self.user_info[uid]["last_spin_time"] = -1
@@ -241,7 +240,7 @@ if __name__ == "__main__":
     after_read_file = os.path.join(config.log_base_dir, "after_read")
     parser = UserProfile(after_read_file)
    
-    profile_file = os.path.join(os.path.dirname(__file__), "data", "user_profiles.txt")
+    profile_file = os.path.join(os.path.dirname(__file__), "data", "user_profiles")
     if not os.path.exists(profile_file):
         parser.parse_log()
         profiles = parser.profiles

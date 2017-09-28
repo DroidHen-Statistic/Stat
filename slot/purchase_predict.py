@@ -30,23 +30,28 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn import tree
 from sklearn.naive_bayes import GaussianNB
+def plot_tree():
+    dot_data = tree.export_graphviz(clf, out_file=None)
+    graph = pydotplus.graph_from_dot_data(dot_data) 
+    graph.write_pdf(os.path.join(path,"tree.pdf"))
 
 def train(x, y):
+    scaler = preprocessing.StandardScaler()
     # x = scaler.fit_transform(x)
-    # x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
-    # print(y_test)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
 
     pay_count = np.sum(y)
     print("pay_count: %d" %pay_count)
-    print(len(x))
+    print(len(x))   
 
-    x_train = x
-    y_train = y
+    # x_train = x
+    # y_train = y
 
-    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5, class_weight = "balanced"),
-        "RF":RandomForestClassifier(max_depth = 5),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier(),"Bayes":GaussianNB()}
+    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 7, class_weight = "balanced"),
+        "RF":RandomForestClassifier(n_estimators = 20, max_depth = 7),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier()}
+    # clfs = {"RF":RandomForestClassifier(max_depth = 10)}
     # clfs = {"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier()}
-    # clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 5)} 
+    # clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 7)} 
     for name, clf in clfs.items():
         print("------%s-------" % name)
         pipe_lr = Pipeline([('clf', clf)])
@@ -62,7 +67,9 @@ def train(x, y):
         f1 = np.mean(cross_val_score(clf, x_train,
                                 y_train, scoring="f1", cv=5))
         print("cross_validation accuracy:%f recall: %f, precision: %f, f1: %f" %(cross_accuracy, cross_recall, cross_precision, f1))
-        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.5)
+       
+        # test
+        # x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.5)
         # print(y_test)
         pay_count = np.sum(y_test)
         pipe_lr.fit(x_train, y_train)
@@ -84,6 +91,7 @@ def train(x, y):
         
         print('Test accuracy: %.3f pay_count: %d recall: %f precision : %f' % (pipe_lr.score(x_test, y_test), pay_count, recall, precision))
 
+        # 画PRC曲线
         # y_score = pipe_lr.decision_function(x_test)
         # from sklearn.metrics import average_precision_score
         # average_precision = average_precision_score(y_test, y_score)
@@ -97,7 +105,6 @@ def train(x, y):
         #          where='post')
         # plt.fill_between(recall, precision, step='post', alpha=0.2,
         #                  color='b')
-
         # plt.xlabel('Recall')
         # plt.ylabel('Precision')
         # plt.ylim([0.0, 1.05])
@@ -106,10 +113,37 @@ def train(x, y):
         #   average_precision))
         # plt.show()
 
+        features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "locale"]
+        class_names = ["non-purchase", "purchase"]
+        # 决策树
+        if name == "DT":
+            path = file_util.get_figure_path("slot", "predict_purchase", "DT")
+            dot_data = tree.export_graphviz(pipe_lr.named_steps['clf'], out_file=None, 
+                                                                        feature_names=features, 
+                                                                        class_names=class_names,
+                                                                        filled=True, rounded=True,
+                                                                        impurity=False)
+            graph = pydotplus.graph_from_dot_data(dot_data)
+            graph.write_pdf(os.path.join(path, "tree5.pdf"))
+
+        # 随机森林
+        if name == "RF":
+            path = file_util.get_figure_path("slot", "predict_purchase", "RF")
+            DTs = pipe_lr.named_steps['clf'].estimators_
+            for i, dt in enumerate(DTs):
+                dot_data = tree.export_graphviz(dt, out_file=None, 
+                                                    feature_names=features, 
+                                                    filled=True, 
+                                                    rounded=True,
+                                                    class_names=class_names,
+                                                    impurity=False)
+                graph = pydotplus.graph_from_dot_data(dot_data) 
+                graph.write_pdf(os.path.join(path, str(i) + ".pdf"))
 
 if __name__ == "__main__":
     conn = conn = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
     features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win"]
+    locales = ["US","MY","HU","MM","RU","IT","BR","DE","GR","EG","ES","FR","PT","PL","AU","CA","ID","RO","GB","UA","CZ","NL","SG"]
     x = []
     y = []
     # sql = "select uid, level, coin, purchase_times, active_days, average_day_active_time, average_login_interval, average_spin_interval from slot_user_profile where purchase_times > 0"
@@ -120,20 +154,56 @@ if __name__ == "__main__":
         d = []
         for feature in features:
             d.append(record[feature])
+        
+        # # locale one-hot的编码
+        # locale_encode = [0] * (len(locales) + 1)
+        # loc = record["locale"]
+        # if loc in locales:
+        #     locale_encode[locales.index(loc)] = 1
+        # else:
+        #     locale_encode[-1] = 1
+        # d += locale_encode
+
+        # locale 数字编码
+        loc = record["locale"]
+        if loc in locales:
+            d.append(locales.index(loc))
+        else:
+            d.append(-1)
+
         x.append(d)
         y.append(1)
+
     # sql = "select uid, level, coin, purchase_times, active_days, average_day_active_time, average_login_interval, average_spin_interval from slot_user_profile where purchase_times = 0"
     sql = "select * from slot_user_profile where purchase_times = 0"
     result_no_pay = conn.query(sql)
-    result_no_pay = random.sample(result_no_pay, 5*pay_num)
+    result_no_pay = random.sample(result_no_pay, 5 * pay_num)
     no_pay_num = len(result_no_pay)
     for record in result_no_pay:
         d = []
         for feature in features:
             d.append(record[feature])
+
+        # # locale的编码
+        # locale_encode = [0] * (len(locales) + 1)
+        # loc = record["locale"]
+        # if loc in locales:
+        #     locale_encode[locales.index(loc)] = 1
+        # else:
+        #     locale_encode[-1] = 1
+        # d += locale_encode
+
+
+        # locale 数字编码
+        loc = record["locale"]
+        if loc in locales:
+            d.append(locales.index(loc))
+        else:
+            d.append(-1)
+
         x.append(d)
         y.append(0)
-    scaler = preprocessing.StandardScaler()
-    x = scaler.fit_transform(np.array(x))
+    # scaler = preprocessing.StandardScaler()
+    # x = scaler.fit_transform(np.array(x))
 
     train(x, y)
