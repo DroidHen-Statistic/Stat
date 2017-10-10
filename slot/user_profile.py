@@ -63,6 +63,12 @@ class PlayBonusFormat(Enum):
     MACHINE_ID = 3
     TOTAL_WIN = 4
     COIN = 5
+    BET = 6
+
+bet_list = [10,25,50,100,200,500,1000,1500,2000,2500,5000,10000,15000,20000,25000,30000,50000,100000,200000,250000]
+level_list = [1,2,3,4,5,7,9,15,20,25,30,35,40,50,100,200]
+bet_map = {1:200, 2:500, 3:1000, 4:1500, 5:2000, 7:2500, 9:5000, 15:10000, 20: 15000, 25:20000, 30:25000, 35:30000, 40:50000, 50:100000, 100: 200000, 200:250000}
+
 
 class UserProfile(object):
     def __init__(self, filename):
@@ -72,7 +78,21 @@ class UserProfile(object):
         self.user_info = {}
         self.current_date = date_util.int_to_date(20170401)
 
+    def max_bet(self, level):
+        low, high = 0, len(level_list)-1  
+        pos = high
+        while low<high:  
+            mid = int((low+high)/2 + 1)
+            if level_list[mid] <= level:  
+                low = mid 
+                pos = low
+            else:#>
+                high = mid - 1    
+        return bet_map[level_list[pos]]
 
+    def bet_ratio(self, bet, level):
+        tmp = self.max_bet(level) 
+        return (bet_list.index(bet) + 1) / (bet_list.index(tmp) + 1)
 
     def parse_log(self):
         with open(self.after_read_file, 'r') as f:
@@ -141,6 +161,8 @@ class UserProfile(object):
         bet = int(line[SpinFormat.BET.value])
         lines = int(line[SpinFormat.LINES.value])
         level = int(line[SpinFormat.LEVEL.value])
+        if bet == 0:
+            return
         if uid not in self.profiles:
             self.profiles[uid] = {}
             self.user_info[uid] = {}
@@ -159,12 +181,18 @@ class UserProfile(object):
                 spin_intervals = self.user_info[uid].get("spin_intervals", 0)
                 self.profiles[uid]["average_spin_interval"] = (avg_spin_interval * (spin_intervals - 1) + spin_interval) / spin_intervals
             self.user_info[uid]["last_spin_time"] = time
-            
+
+        bet_tmp = self.bet_ratio(bet, level)
+        avg_bet = self.profiles[uid].get("average_bet", 0)
+        spin_times = self.profiles[uid].get("spin_times", 0)
+        self.profiles[uid]["average_bet"] = (avg_bet * (spin_times - 1) + bet_tmp) / spin_times
+        # print(self.profiles[uid]["average_bet"])
 
         self.profiles[uid]["level"] = level
         self.profiles[uid]["coin"] = coin
         self.profiles[uid]["machine_" + str(machine)] = self.profiles[uid].setdefault("machine_" + str(machine), 0) + 1
 
+        
         current_active_time = self.user_info[uid].get("current_active_time",0)
 
         if current_day - self.user_info[uid].get("last_active_day", current_day) >= timedelta(days = 1): #如果发现已经到了新的一天
@@ -179,8 +207,6 @@ class UserProfile(object):
         else:
             self.user_info[uid]["current_active_time"] = current_active_time + (time - self.user_info[uid].get("last_active_time", time)).total_seconds()
 
-
-        
         self.user_info[uid]["last_active_day"] = current_day
         self.user_info[uid]["last_active_time"] = time
 
@@ -190,12 +216,14 @@ class UserProfile(object):
         current_day = datetime(time.year, time.month, time.day, 0, 0, 0)
         uid = int(line[PlayBonusFormat.UID.value])
         win = int(line[PlayBonusFormat.TOTAL_WIN.value])
-        avg_bonus_win = self.profiles[uid].get("average_bonus_win", 0)
-        bonus_times = self.profiles[uid].get("bonus_times", 0)
-        self.profiles[uid]["average_bonus_win"] = (avg_bonus_win * bonus_times + win) / (bonus_times + 1)
-        self.profiles[uid]["bonus_times"] = bonus_times + 1
-        self.current_date = datetime(time.year, time.month, time.day)
+        bet = int(line[PlayBonusFormat.BET.value]) / 100
+        if bet != 0:
+            avg_bonus_win = self.profiles[uid].get("average_bonus_win", 0)
+            bonus_times = self.profiles[uid].get("bonus_times", 0)
+            self.profiles[uid]["average_bonus_win"] = (avg_bonus_win * bonus_times + win / bet) / (bonus_times + 1)
+            self.profiles[uid]["bonus_times"] = bonus_times + 1
 
+        self.current_date = datetime(time.year, time.month, time.day)
         current_active_time = self.user_info[uid].get("current_active_time",0)
         if current_day - self.user_info[uid].get("last_active_day", current_day) >= timedelta(days = 1): #如果发现已经到了新的一天
             
@@ -208,6 +236,7 @@ class UserProfile(object):
             self.user_info[uid]["day_active_time"] = 0
         else:
             self.user_info[uid]["current_active_time"] = current_active_time + (time - self.user_info[uid].get("last_active_time", time)).total_seconds()
+
         self.user_info[uid]["last_active_day"] = current_day
         self.user_info[uid]["last_active_time"] = time
 
@@ -240,7 +269,7 @@ if __name__ == "__main__":
     after_read_file = os.path.join(config.log_base_dir, "after_read")
     parser = UserProfile(after_read_file)
    
-    profile_file = os.path.join(os.path.dirname(__file__), "data", "user_profiles")
+    profile_file = os.path.join(os.path.dirname(__file__), "data", "user_profiles_tmp")
     if not os.path.exists(profile_file):
         parser.parse_log()
         profiles = parser.profiles
@@ -261,5 +290,5 @@ if __name__ == "__main__":
             values.append(val)
         columns += ")"
         val_format += ")"
-        sql = "insert into slot_user_profile " + columns + " values " + val_format
+        sql = "insert into slot_user_profile_tmp " + columns + " values " + val_format
         conn.query(sql, values)

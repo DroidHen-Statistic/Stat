@@ -16,10 +16,16 @@ from sklearn import preprocessing
 import random
 from sklearn.pipeline import Pipeline
 
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
+from scipy.stats import pearsonr
+
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import roc_curve, auc
+from scipy import interp  
 
 import pydotplus
 
@@ -30,6 +36,8 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn import tree
 from sklearn.naive_bayes import GaussianNB
+
+
 def plot_tree():
     dot_data = tree.export_graphviz(clf, out_file=None)
     graph = pydotplus.graph_from_dot_data(dot_data) 
@@ -47,32 +55,35 @@ def train(x, y):
     # x_train = x
     # y_train = y
 
-    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 7, class_weight = "balanced"),
-        "RF":RandomForestClassifier(n_estimators = 20, max_depth = 7),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier()}
+    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 7, class_weight = {0:1,1:5},min_samples_split = 9, min_samples_leaf = 10),
+        "RF":RandomForestClassifier(n_estimators = 20, max_depth = 7, class_weight = {0:1,1:5}, min_samples_split = 10, min_samples_leaf = 10),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier()}
     # clfs = {"RF":RandomForestClassifier(max_depth = 10)}
     # clfs = {"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier()}
     # clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 7)} 
     for name, clf in clfs.items():
         print("------%s-------" % name)
-        pipe_lr = Pipeline([('clf', clf)])
+        pipe_lr = Pipeline([('feature_selection', SelectKBest(lambda X, Y: np.array(list(map(lambda x:pearsonr(x, Y)[0], X.T))).T, k=7)),('clf', clf)])
 
-        cross_accuracy = np.mean(cross_val_score(clf, x_train,
-                                y_train, scoring="accuracy", cv=5))
-        cross_recall = np.mean(cross_val_score(clf, x_train,
-                                y_train, scoring="recall", cv=5))
-        cross_precision = np.mean(cross_val_score(clf, x_train,
-                                y_train, scoring="precision", cv=5))
+        cross_accuracy = np.mean(cross_val_score(pipe_lr, x_train,
+                                y_train, scoring="accuracy", cv=10))
+        cross_recall = np.mean(cross_val_score(pipe_lr, x_train,
+                                y_train, scoring="recall", cv=10))
+        cross_precision = np.mean(cross_val_score(pipe_lr, x_train,
+                                y_train, scoring="precision", cv=10))
+        cross_auc = np.mean(cross_val_score(pipe_lr, x_train,
+                                y_train, scoring="roc_auc", cv=10))
         # roc_auc = np.mean(cross_val_score(clf, x_train,
         #                         y_train, scoring="roc_auc", cv=5))
-        f1 = np.mean(cross_val_score(clf, x_train,
-                                y_train, scoring="f1", cv=5))
-        print("cross_validation accuracy:%f recall: %f, precision: %f, f1: %f" %(cross_accuracy, cross_recall, cross_precision, f1))
+        f1 = np.mean(cross_val_score(pipe_lr, x_train,
+                                y_train, scoring="f1", cv=10))
+        print("cross_validation accuracy:%f recall: %f, precision: %f, f1: %f, roc_auc : %f" %(cross_accuracy, cross_recall, cross_precision, f1, cross_auc))
        
         # test
         # x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.5)
         # print(y_test)
         pay_count = np.sum(y_test)
         pipe_lr.fit(x_train, y_train)
+        # print(pipe_lr.named_steps['feature_selection'].get_support(indices=True))
         y_predict = pipe_lr.predict(x_test)
         # print(y_predict)
         # print(pipe_lr.named_steps['clf'].theta_)
@@ -88,8 +99,9 @@ def train(x, y):
         recall = float(positive_true/pay_count)
         precision = positive_true/np.sum(y_predict)
         accuracy = (positive_true + negative_true)/len(y_predict)
+        f1 = 2 * (precision * recall)/(precision + recall)
         
-        print('Test accuracy: %.3f pay_count: %d recall: %f precision : %f' % (pipe_lr.score(x_test, y_test), pay_count, recall, precision))
+        print('Test accuracy: %.3f pay_count: %d recall: %f precision : %f f1 : %f' % (pipe_lr.score(x_test, y_test), pay_count, recall, precision, f1))
 
         # 画PRC曲线
         # y_score = pipe_lr.decision_function(x_test)
@@ -112,8 +124,36 @@ def train(x, y):
         # plt.title('2-class Precision-Recall curve: AUC={0:0.2f}'.format(
         #   average_precision))
         # plt.show()
+        
 
-        features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "locale"]
+        # 画ROC曲线
+        probas_ = pipe_lr.predict_proba(x_test) 
+        # print(pipe_lr.classes_ )
+
+        # 通过roc_curve()函数，求出fpr和tpr，以及阈值  
+        # 这里传进去的第二个参数是预测为正例的概率
+        # The predicted class probability is the fraction of samples of the same class in a leaf.
+        fpr, tpr, thresholds = roc_curve(y_test, probas_[:, 1])
+        roc_auc = auc(fpr, tpr)
+        #画图，只需要plt.plot(fpr,tpr),变量roc_auc只是记录auc的值，通过auc()函数能计算出来  
+        plt.plot(fpr, tpr, lw=1, label='ROC fold %d (area = %0.2f)' % (1, roc_auc))
+      
+        #画对角线
+        plt.plot([0, 1], [0, 1], '--', color=(0.6, 0.6, 0.6), label='Luck')
+        
+
+        plt.xlim([-0.05, 1.05])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Receiver operating characteristic example')
+        plt.legend(loc="lower right")
+        plt.show()
+
+
+
+        # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "average_bet", "locale"]
+        features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win"]
         class_names = ["non-purchase", "purchase"]
         # 决策树
         if name == "DT":
@@ -121,10 +161,11 @@ def train(x, y):
             dot_data = tree.export_graphviz(pipe_lr.named_steps['clf'], out_file=None, 
                                                                         feature_names=features, 
                                                                         class_names=class_names,
-                                                                        filled=True, rounded=True,
+                                                                        filled=True, 
+                                                                        rounded=True,
                                                                         impurity=False)
             graph = pydotplus.graph_from_dot_data(dot_data)
-            graph.write_pdf(os.path.join(path, "tree5.pdf"))
+            graph.write_pdf(os.path.join(path, "tree_weight_1_5_min_leaf_sample_10_max_depth_7.pdf"))
 
         # 随机森林
         if name == "RF":
@@ -142,6 +183,7 @@ def train(x, y):
 
 if __name__ == "__main__":
     conn = conn = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+    # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "average_bet"]
     features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win"]
     locales = ["US","MY","HU","MM","RU","IT","BR","DE","GR","EG","ES","FR","PT","PL","AU","CA","ID","RO","GB","UA","CZ","NL","SG"]
     x = []
