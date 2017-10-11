@@ -19,6 +19,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
 from sklearn.feature_selection import VarianceThreshold
+from sklearn.feature_selection import RFECV
 from scipy.stats import pearsonr
 
 from sklearn.model_selection import train_test_split
@@ -65,7 +66,8 @@ def train(x, y):
         print("------%s-------" % name)
         # pipe_lr = Pipeline([('feature_selection', SelectKBest(lambda X, Y: np.array(list(map(lambda x:pearsonr(x, Y)[0], X.T))).T, k=7)),('clf', clf)])
         # pipe_lr = Pipeline([('feature_selection',SelectKBest(other_util.mul_pearson, k=7)),('clf', clf)])
-        pipe_lr = Pipeline([('feature_selection',VarianceThreshold(threshold=0)),('clf', clf)])
+        # pipe_lr = Pipeline([('feature_selection',VarianceThreshold(threshold=0)),('clf', clf)])
+        pipe_lr = Pipeline([('feature_selection', RFECV(estimator=clf, step=1, cv=3,scoring='recall')),('clf', clf)])
         cross_accuracy = np.mean(cross_val_score(pipe_lr, x_train,
                                 y_train, scoring="accuracy", cv=10))
         cross_recall = np.mean(cross_val_score(pipe_lr, x_train,
@@ -85,7 +87,6 @@ def train(x, y):
         # print(y_test)
         pay_count = np.sum(y_test)
         pipe_lr.fit(x_train, y_train)
-        pipe_lr.fit(x_train[0:10], y_train[0:10])
         print(pipe_lr.named_steps['feature_selection'].get_support(indices=True))
         y_predict = pipe_lr.predict(x_test)
         # print(y_predict)
