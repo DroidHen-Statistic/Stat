@@ -110,6 +110,9 @@ class UserProfile(object):
             if "average_day_active_time" not in profile:
                 profile["average_day_active_time"] = self.user_info[uid].get("day_active_time", 0) + self.user_info[uid].get("current_active_time", 0)
                 profile["active_days"] = 1
+            spin_times = profile.get("spin_times", 0)
+            bonus_times = profile.get("bonus_times", 0)
+            profile["bonus_ratio"] = bonus_times / spin_times if spin_times != 0 else bonus_times
 
     def parse_login(self, line):
         time = date_util.int_to_datetime(int(line[LoginFormat.DATETIME.value]))

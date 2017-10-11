@@ -18,6 +18,7 @@ from sklearn.pipeline import Pipeline
 
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
+from sklearn.feature_selection import VarianceThreshold
 from scipy.stats import pearsonr
 
 from sklearn.model_selection import train_test_split
@@ -56,14 +57,15 @@ def train(x, y):
     # y_train = y
 
     clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 7, class_weight = {0:1,1:5},min_samples_split = 9, min_samples_leaf = 10),
-        "RF":RandomForestClassifier(n_estimators = 20, max_depth = 7, class_weight = {0:1,1:5}, min_samples_split = 10, min_samples_leaf = 10),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier()}
+        "RF":RandomForestClassifier(n_estimators = 20, max_depth = 7, class_weight = {0:1,1:5}, min_samples_split = 10, min_samples_leaf = 10, n_jobs = 2),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier()}
     # clfs = {"RF":RandomForestClassifier(max_depth = 10)}
     # clfs = {"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier()}
     # clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 7)} 
     for name, clf in clfs.items():
         print("------%s-------" % name)
-        pipe_lr = Pipeline([('feature_selection', SelectKBest(lambda X, Y: np.array(list(map(lambda x:pearsonr(x, Y)[0], X.T))).T, k=7)),('clf', clf)])
-
+        # pipe_lr = Pipeline([('feature_selection', SelectKBest(lambda X, Y: np.array(list(map(lambda x:pearsonr(x, Y)[0], X.T))).T, k=7)),('clf', clf)])
+        # pipe_lr = Pipeline([('feature_selection',SelectKBest(other_util.mul_pearson, k=7)),('clf', clf)])
+        pipe_lr = Pipeline([('feature_selection',VarianceThreshold(threshold=0)),('clf', clf)])
         cross_accuracy = np.mean(cross_val_score(pipe_lr, x_train,
                                 y_train, scoring="accuracy", cv=10))
         cross_recall = np.mean(cross_val_score(pipe_lr, x_train,
@@ -83,7 +85,8 @@ def train(x, y):
         # print(y_test)
         pay_count = np.sum(y_test)
         pipe_lr.fit(x_train, y_train)
-        # print(pipe_lr.named_steps['feature_selection'].get_support(indices=True))
+        pipe_lr.fit(x_train[0:10], y_train[0:10])
+        print(pipe_lr.named_steps['feature_selection'].get_support(indices=True))
         y_predict = pipe_lr.predict(x_test)
         # print(y_predict)
         # print(pipe_lr.named_steps['clf'].theta_)
@@ -152,8 +155,8 @@ def train(x, y):
 
 
 
-        # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "average_bet", "locale"]
-        features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win"]
+        features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "average_bet", "bonus_ratio", "locale"]
+        # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win"]
         class_names = ["non-purchase", "purchase"]
         # 决策树
         if name == "DT":
@@ -183,13 +186,13 @@ def train(x, y):
 
 if __name__ == "__main__":
     conn = conn = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
-    # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "average_bet"]
-    features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win"]
+    features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "average_bet", "bonus_ratio"]
+    # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win"]
     locales = ["US","MY","HU","MM","RU","IT","BR","DE","GR","EG","ES","FR","PT","PL","AU","CA","ID","RO","GB","UA","CZ","NL","SG"]
     x = []
     y = []
     # sql = "select uid, level, coin, purchase_times, active_days, average_day_active_time, average_login_interval, average_spin_interval from slot_user_profile where purchase_times > 0"
-    sql = "select * from slot_user_profile where purchase_times > 0"
+    sql = "select * from slot_user_profile_tmp where purchase_times > 0"
     result_pay = conn.query(sql)
     pay_num = len(result_pay)
     for record in result_pay:
@@ -217,7 +220,7 @@ if __name__ == "__main__":
         y.append(1)
 
     # sql = "select uid, level, coin, purchase_times, active_days, average_day_active_time, average_login_interval, average_spin_interval from slot_user_profile where purchase_times = 0"
-    sql = "select * from slot_user_profile where purchase_times = 0"
+    sql = "select * from slot_user_profile_tmp where purchase_times = 0"
     result_no_pay = conn.query(sql)
     result_no_pay = random.sample(result_no_pay, 5 * pay_num)
     no_pay_num = len(result_no_pay)

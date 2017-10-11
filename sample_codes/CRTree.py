@@ -220,7 +220,7 @@ if __name__ == "__main__":
                     , "class_weight" : [None]
     }
     n_iter_search = 3
-    random_search = RandomizedSearchCV(estimator = tree.DecisionTreeClassifier(), param_distributions  = param_dist, scoring ="recall", n_jobs =1)
+    random_search = RandomizedSearchCV(estimator = tree.DecisionTreeClassifier(), param_distributions  = param_dist, scoring ="recall", n_jobs = 1)
     start = time()
     # exit()
     # __spec__ = "1"
