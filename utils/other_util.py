@@ -10,8 +10,11 @@ import numpy as np
 """
 反转字典的k和v
 """
+
+
 def flip_dict(d):
-    return { pair[1]:pair[0] for pair in d.items()}
+    return {pair[1]: pair[0] for pair in d.items()}
+
 
 def union_dict(*objs, f=lambda x, y: x + y, initial=0):
     """
@@ -133,11 +136,15 @@ from sklearn.feature_selection import chi2
 from sklearn.pipeline import Pipeline
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import cross_val_score
+
+
 class ScoreEstimator(BaseEstimator):
     """ScoreEstimator
         可以打分的分类器
         传入想打分的类型，预测器和折叠次数
         可供流水线使用
+
+        返回list，每项是每折的打分
 
     from sklearn.linear_model import LogisticRegression
     reg = LogisticRegression()
@@ -153,6 +160,7 @@ class ScoreEstimator(BaseEstimator):
     print(my_est.predict(X))
     print(pipe.score(X, y))
     """
+
     def __init__(self, est_, scoring, cv=2):
         super(ScoreEstimator, self).__init__()
         self.est_ = est_
@@ -176,22 +184,76 @@ class ScoreEstimator(BaseEstimator):
 
     def score(self, X, y):
         score = cross_val_score(self.est_, X,
-                                        y, scoring=self.scoring, cv=self.cv)
+                                y, scoring=self.scoring, cv=self.cv)
         return score
 
 
+from sklearn.model_selection import StratifiedKFold
+# from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.metrics import recall_score
+from sklearn.metrics import average_precision_score
+from sklearn.metrics import accuracy_score
+from collections import defaultdict
+# import exceptions
 
 
-import socket 
+class KFoldsClassifier():
+    """KFoldEstimator
+        K折打分，会保留训练模型，并保留已经算过的分数
+    """
+
+    def __init__(self, cls_, score_name, **argv_for_cv):
+        self.cls_ = cls_
+        self.skf_ = StratifiedKFold(**argv_for_cv)
+        self.score_mean = {}
+        self.score_std = {}
+        for name in score_name:
+            self.score_mean[name] = -1
+            self.score_std[name] = -1
+
+    def score(self, X, y):
+        split_data = self.skf_.split(X, y)
+        all_scores = defaultdict(list)
+        for train, dev in split_data:
+            self.cls_.fit(X[train], y[train])
+            # cls.predict_proba(X[dev])
+            y_pre = self.cls_.predict(X[dev])
+            # right = sum(y_pre == y)
+            # err = len(y) - right
+            cr_score = 0
+            for name in self.score_mean.keys():
+                if(name == "recall"):
+                    cr_score = recall_score(y[dev], y_pre)
+                elif (name == "accuracy"):
+                    cr_score = accuracy_score(y[dev], y_pre)
+                elif (name == "precision"):
+                    cr_score = average_precision_score(y[dev], y_pre)
+                else:
+                    raise (Exception("wrong score name:%s, use recall, accuracy or precision" % name))
+                all_scores[name].append(cr_score)
+        for name in self.score_mean.keys():
+            self.score_mean[name] = np.mean(all_scores[name])
+            self.score_std[name] = np.array(all_scores[name]).std()
+
+        return {"mean":self.score_mean, "std":self.score_std}
+
+
+import socket
 import struct
-def ip2long(ipstr): 
+
+
+def ip2long(ipstr):
     return struct.unpack("!I", socket.inet_aton(ipstr))[0]
 
-def long2ip(ip): 
+
+def long2ip(ip):
     return socket.inet_ntoa(struct.pack("!I", ip))
 
 import csv
+
+
 class IPDB(object):
+
     def __init__(self, filename):
         self.ipslist = []
         self.ipelist = []
@@ -223,7 +285,7 @@ class IPDB(object):
     def ip2cc(self, ip):
         s = 0
         ip = ip2long(ip)
-        e = self.length;
+        e = self.length
         ret = self.findcc(s, e - 1, ip)
         return ret
 
