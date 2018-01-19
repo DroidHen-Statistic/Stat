@@ -126,9 +126,11 @@ def fitDateReturn(game_id, locales = [-2], channels = [-2]):
 				plt.plot(days,y[i],'r--',label = 'origin')
 				plt.plot(days,y_hat,'b--',label = 'fit curve')
 				plt.legend(loc = 'upper right')
+				plt.gca().set_xlabel("days")
+				plt.gca().set_ylabel("return_percent")
 				plt.grid(True)
-				#plt.show()
-				#plt.savefig(os.path.join(path,str(dates[i])))
+				# plt.show()
+				plt.savefig(os.path.join(path,str(dates[i])))
 				plt.cla()
 
 			print("result for channel %d locale %s is %f * (%f ** x) + %f" %(channel, locale, best_popt[0],best_popt[1],best_popt[2]))
@@ -149,7 +151,8 @@ if __name__ == '__main__':
 		matplotlib.use('agg')
 	import matplotlib.pyplot as plt
 	DAYS = 29
-	game_id = sys.argv[1]
+	# game_id = sys.argv[1]
+	game_id = "s_101250"
 
 	fitDateReturn(game_id)
 	# x = np.arange(20)

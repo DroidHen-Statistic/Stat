@@ -6,6 +6,7 @@ import numpy as np
 
 from functools import reduce
 import numpy as np
+import copy
 
 """
 反转字典的k和v
@@ -211,11 +212,22 @@ class KFoldsClassifier():
             self.score_mean[name] = -1
             self.score_std[name] = -1
 
-    def score(self, X, y):
+    def score(self, X, y, pay_weight = 1):
         split_data = self.skf_.split(X, y)
         all_scores = defaultdict(list)
         for train, dev in split_data:
-            self.cls_.fit(X[train], y[train])
+            pay_index = [i for i, y in enumerate(y[train]) if y == 1]
+            nopay_index = [i for i, y in enumerate(y[train]) if y != 1]
+            X_pay = X[train][pay_index]
+            X_nopay = X[train][nopay_index]
+            X_train = copy.copy(X_pay)
+            for i in range(1, pay_weight):
+                X_train = np.vstack((X_train, X_pay))
+            X_train = np.vstack((X_train, X_nopay))
+            y_train = np.array([1] * len(X_pay) * pay_weight + [0] * len(X_nopay))
+            # X_train = X[train]
+            # y_train = y[train]
+            self.cls_.fit(X_train, y_train)
             # cls.predict_proba(X[dev])
             y_pre = self.cls_.predict(X[dev])
             # right = sum(y_pre == y)
@@ -224,8 +236,10 @@ class KFoldsClassifier():
             for name in self.score_mean.keys():
                 if(name == "recall"):
                     cr_score = recall_score(y[dev], y_pre)
+                    # print("recall : ", cr_score)
                 elif (name == "accuracy"):
                     cr_score = accuracy_score(y[dev], y_pre)
+                    # print("accuracy : ", cr_score)
                 elif (name == "precision"):
                     cr_score = average_precision_score(y[dev], y_pre)
                 else:
@@ -295,3 +309,14 @@ class IPDB(object):
         elif ip > self.ipelist[index]:
             return 1
         return 0
+
+
+def cdf(data):
+    data_dis = dict(zip(*np.unique(data, return_counts=True)))
+    x = list(data_dis.keys())
+    _y = list(data_dis.values())
+    y = [0]
+    l = len(data)
+    for i,a in enumerate(_y):
+        y.append(y[i] + a / l)
+    return [x, y[1:]]

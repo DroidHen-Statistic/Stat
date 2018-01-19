@@ -37,8 +37,10 @@ def report(results, n_top=10):
             print("")
 
 class UserData:
-    features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time",
-                "average_login_interval", "average_spin_interval", "average_bonus_win"]
+    # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time",
+                # "average_login_interval", "average_spin_interval", "average_bonus_win", "spin_per_active_day", "bonus_per_active_day"]
+    
+    features = ["average_day_active_time","average_login_interval", "average_spin_interval", "average_bonus_win", "spin_per_active_day", "bonus_per_active_day","average_bet", "bonus_ratio", "free_spin_ratio"]
     locales = ["US", "MY", "HU", "MM", "RU", "IT", "BR", "DE", "GR", "EG", "ES",
                "FR", "PT", "PL", "AU", "CA", "ID", "RO", "GB", "UA", "CZ", "NL", "SG"]
     locale_dict = {}
@@ -72,8 +74,8 @@ class UserData:
         pay_weight = self.pay_weight
         cr_no_pay = random.sample(list(self.no_pay_vectors), min(pay_weight * len_pay, len_no_pay))
         cr_all_sample = copy.copy(self.pay_vectors)
-        for i in range(1, pay_weight):
-            cr_all_sample = np.vstack((cr_all_sample, self.pay_vectors))
+        # for i in range(1, pay_weight):
+        #     cr_all_sample = np.vstack((cr_all_sample, self.pay_vectors))
         cr_all_sample = np.vstack((cr_all_sample, cr_no_pay))
 
         # rand.shuffle(cr_all_feature)
@@ -109,9 +111,9 @@ class UserData:
         # 取得原始数据
         conn = MysqlConnection(config.dbhost, config.dbuser,
                                config.dbpassword, config.dbname)
-        sql = "select * from slot_user_profile where purchase_times = 0"
+        sql = "select * from slot_user_profile_tmp where purchase_times = 0"
         result_no_pay = conn.query(sql)
-        sql = "select * from slot_user_profile where purchase_times > 0"
+        sql = "select * from slot_user_profile_tmp where purchase_times > 0"
         result_pay = conn.query(sql)
         # pay_weight = self.pay_weight
         # result_no_pay = random.sample(result_no_pay, pay_weight * len(result_pay))
@@ -129,7 +131,7 @@ class UserData:
         self.pay_vectors[:, 0 ]= 1
         self.no_pay_vectors = np.zeros(
              ((len_no_pay), len(argv) + 1))
-        self.no_pay_vectors[:, 0 ]= 0
+        self.no_pay_vectors[:, 0 ] = 0
         # self.vectors = np.zeros(
         #     ((total_len), len(argv) + 1))
         # self.vectors[:len_no_pay, 0] = 0
@@ -153,7 +155,7 @@ class UserData:
         # self.y = self.vectors[:,0].astype(int)
 
 if __name__ == "__main__":
-    user_data = UserData(pay_weight=5)
+    user_data = UserData(pay_weight = 5)
     # user_data.get_uid_2_vector(["bonus_times", "active_days", "locale"])
     user_data.get_uid_2_vector()
 
@@ -163,19 +165,19 @@ if __name__ == "__main__":
 
 
     from sklearn import tree # 树形结构
+    from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import recall_score
     from sklearn.metrics import average_precision_score
     from sklearn.metrics import accuracy_score
 
 
     # 要选的超参数
-    min_samples_per_node = list(range(16,64))
+    min_samples_per_node = list(range(4,64))
     max_deep = list(range(4,8))
 
 
     # path = file_util.get_figure_path("slot", "predict_purchase", "DT")
-    path = file_util.get_figure_path("slot", "predict_purchase", "TestParams")
-    acc_threshold = 0.75
+    acc_threshold = 0.7
     import matplotlib.pyplot as plt
     fig = plt.gcf()
     fig.set_size_inches(15,12)
@@ -193,7 +195,7 @@ if __name__ == "__main__":
     # ylim = [0, 1]
     axMean.set_xlim(xlim)
     # axMean.set_ylim(ylim)
-    axMean.yaxis.set_major_locator(plt.LogLocator(2.1, [2.0])) # 按对数画刻度,第一个参数底数，第二个参数是倍数。比如这个例子在1,3,9,27...上标注刻度，也在2,6,12...上标注
+    # axMean.yaxis.set_major_locator(plt.LogLocator(2.1, [2.0])) # 按对数画刻度,第一个参数底数，第二个参数是倍数。比如这个例子在1,3,9,27...上标注刻度，也在2,6,12...上标注
     # axMean.set_yscale("log", basey=2)  # 对数坐标轴
     axMean.xaxis.set_major_locator(plt.MultipleLocator(1)) # 按1步长标示刻度
     axMean.set_xticklabels([-1] + min_samples_per_node) # 补一个-1，因为坐标原点强制不显示，不补就错位
@@ -206,12 +208,12 @@ if __name__ == "__main__":
     ##################### 换x坐标，这几个一定要搭配起来用！#############################
     axMean.set_title('means')
     axStd.set_title('stds')
-    axMean.set_xlabel('min_sample')
-    axStd.set_xlabel('min_sample')
+    axMean.set_xlabel('min_samples_per_node')
+    axStd.set_xlabel('min_samples_per_node')
     axMean.set_ylabel('recall_mean')
     axStd.set_ylabel('recall_std')
     # skf = StratifiedKFold(n_splits =3, shuffle =True)
-    for test_time in range(0, 1):
+    for test_time in range(0, 10):
         print("test time:%s" % test_time)
         user_data.get_X_y()
         X= user_data.X
@@ -222,15 +224,39 @@ if __name__ == "__main__":
         scoring = "recall"
         for min_sample in min_samples_per_node:
         # for deep in max_deep:
-            cls = tree.DecisionTreeClassifier(max_depth=7, min_samples_split= min_sample, min_samples_leaf= min_sample, class_weight= {0: 1, 1: 5})
+            # cls = tree.DecisionTreeClassifier(max_depth = 9, min_samples_split = min_sample, min_samples_leaf = min_sample)
+            cls = RandomForestClassifier(n_estimators = 22, max_depth = 8, min_samples_split = min_sample, min_samples_leaf = min_sample, n_jobs = 2, class_weight = {0:1,1:5})
             cvClassfier = other_util.KFoldsClassifier(cls, ["recall", "accuracy"], n_splits =3, shuffle =True)
-            cr_scores = cvClassfier.score(X, y)
+            cr_scores = cvClassfier.score(X, y, 1)
             if cr_scores["mean"]["accuracy"] < acc_threshold:
                 scores.append(0)
                 stds.append(0)
             else:
-                scores.append(cr_scores["mean"]["recall"] ** 2 *100)    
+                scores.append(cr_scores["mean"]["recall"] * 100)
                 stds.append(cr_scores["std"]["recall"])
+
+            # 画 DT 树
+            # path = file_util.get_figure_path("slot", "predict_purchase", "TestParams", "min_samples_per_node", "RF", "test time" + str(test_time))
+            # dot_data = tree.export_graphviz(cls, out_file=None, 
+            #                                                     feature_names=UserData.features, 
+            #                                                     class_names=["no_pay", "pay"],
+            #                                                     filled=True, rounded=True,
+            #                                                     impurity=False)
+            # graph = pydotplus.graph_from_dot_data(dot_data)
+            # graph.write_pdf(os.path.join(path, "tree" + str(test_time)  + "_" + str(min_sample)+ ".pdf"))
+
+            # 画 RF 树
+            path = file_util.get_figure_path("slot", "predict_purchase", "TestParams", "min_samples_per_node", "RF", "test time" + str(test_time) + "_min_samples_per_node_" + str(min_sample))
+            DTs = cls.estimators_
+            for i, dt in enumerate(DTs):
+                dot_data = tree.export_graphviz(dt, out_file=None,
+                                                    feature_names=UserData.features, 
+                                                    class_names=["no_pay", "pay"],
+                                                    filled=True, rounded=True,
+                                                    impurity=False)
+                graph = pydotplus.graph_from_dot_data(dot_data)
+                graph.write_pdf(os.path.join(path, "tree" + str(i) + ".pdf"))
+
 
             # dot_data = tree.export_graphviz(cvClassfier.cls_ , out_file=None, 
             #                                                             feature_names=UserData.features, 
@@ -249,15 +275,15 @@ if __name__ == "__main__":
 
         # import matplotlib.pyplot as plt
         # plt.gcf().set_size_inches(12,6)
-        scores = np.logspace(0,9,10, base =2)
+        # scores = np.logspace(0,9,10, base =2)
         axMean.plot(scores)
         axStd.plot(stds)
         # plt.show()
 
         # # ax.plot(variance, label = "var")
         # ax.legend(loc="upper right")
-    figure_path = file_util.get_figure_path("slot", "predict_purchase", "TestParams")
-    file_name = os.path.join(figure_path, "tree_"  + "node" + ".png")
+    figure_path = file_util.get_figure_path("slot", "predict_purchase", "TestParams", "min_samples_per_node", "RF")
+    file_name = os.path.join(figure_path, "min_samples_per_node" + ".png")
     # file_name_std = os.path.join(figure_path, "tree_"  + "std" + ".png")
     # gcf.savefig(file_name, dpi= 160)
     # if payed >= 1:

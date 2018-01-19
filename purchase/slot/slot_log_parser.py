@@ -1,17 +1,16 @@
-import numpy as np
-
-# plt.switch_backend('agg')  # 服务器上跑
 import os
 import sys
-from ready_for_train import Vector_Reader as v_reader
 head_path = os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))
 # print(head_path)
 sys.path.append(head_path)
+
+from LogParser import LogParser
 import config
 from utils import *
 from datetime import datetime, timedelta
-
+import numpy as np
+import pandas as pd
 from collections import defaultdict
 from MysqlConnection import MysqlConnection
 from enum import Enum, unique
@@ -23,8 +22,6 @@ class ActionType(Enum):
     SPIN = 2
     PLAYBONUS = 3
     PURCHASE = 4
-
-
 
 @unique
 class SpinFormat(Enum):
@@ -72,12 +69,19 @@ level_list = [1,2,3,4,5,7,9,15,20,25,30,35,40,50,100,200]
 bet_map = {1:200, 2:500, 3:1000, 4:1500, 5:2000, 7:2500, 9:5000, 15:10000, 20: 15000, 25:20000, 30:25000, 35:30000, 40:50000, 50:100000, 100: 200000, 200:250000}
 
 
-class UserProfile(object):
-    def __init__(self, filename):
-        self.after_read_file = filename
+class SlotPurchaseLogParser(LogParser):
+    def __init__(self, newfile, oldfile = "", outfile = ""):
+        self.after_read_file = newfile
+        self.outfile = outfile
         self.ipdb = other_util.IPDB(os.path.join(config.base_dir, "ipdb.csv"))
-        self.profiles = {}
-        self.user_info = {}
+        if oldfile == "":
+            self.profiles = {}
+            self.user_info = {}
+        else:
+            with open(oldfile, 'rb') as f:
+                tmp = pickle.load(f)
+                self.profiles = tmp[0]
+                self.user_info = tmp[1]
         self.current_date = date_util.int_to_date(20170401)
 
     def max_bet(self, level):
@@ -96,7 +100,13 @@ class UserProfile(object):
         tmp = self.max_bet(level) 
         return (bet_list.index(bet) + 1) / (bet_list.index(tmp) + 1)
 
-    def parse_log(self):
+    def parse(self):
+        if os.path.exists(self.outfile):
+            with open(profile_file, 'rb') as f:
+                tmp = pickle.load(f)
+                self.profiles = tmp[0]
+                self.user_info = tmp[1]
+            return
         with open(self.after_read_file, 'r') as f:
             for line in f.readlines():
                 line = line.strip().split(' ')
@@ -312,36 +322,47 @@ class UserProfile(object):
         self.profiles[uid]["last_active_time"] = time
 
 
+    def output_to_file(self):
+        with open(self.outfile, 'wb') as f:
+            pickle.dump([self.profiles, self.user_info], f)
 
-def get_profile():
-    after_read_file = os.path.join(config.log_base_dir, "after_read")
-    parser = UserProfile(after_read_file)
-   
-    profile_file = os.path.join(os.path.dirname(__file__), "data", "user_profiles_tmp")
-    if not os.path.exists(profile_file):
-        parser.parse_log()
-        profiles = parser.profiles
-        with open(profile_file, 'wb') as f:
-            pickle.dump(profiles, f)
-    else:
-        with open(profile_file, 'rb') as f:
-            profiles = pickle.load(f)
-    return profiles
+    def output_to_mysql(self):
+        conn = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+        for uid, profile in self.profiles.items():
+            columns = "(uid"
+            val_format = "(%s"
+            values = [uid]    
+            for col, val in profile.items():
+                columns += (", " + col)
+                val_format += (", " + "%s")
+                values.append(val)
+            columns += ")"
+            val_format += ")"
+            sql = "insert into slot_profiles_test " + columns + " values " + val_format
+            conn.query(sql, values)
 
+       
 
 if __name__ == "__main__":
-    profiles = get_profile()
+    # profiles = get_profile()
 
-    conn = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
-    for uid, profile in profiles.items():
-        columns = "(uid"
-        val_format = "(%s"
-        values = [uid]
-        for col, val in profile.items():
-            columns += (", " + col)
-            val_format += (", " + "%s")
-            values.append(val)
-        columns += ")"
-        val_format += ")"
-        sql = "insert into slot_user_profile_tmp " + columns + " values " + val_format
-        conn.query(sql, values)
+    after_read_file = os.path.join(config.log_base_dir, "after_read")
+    profile_file = os.path.join(os.path.dirname(__file__), "data", "user_profiles_tmp_test")
+    parser = SlotPurchaseLogParser(after_read_file, outfile = profile_file)
+    parser.parse()
+    parser.output_to_file()
+    parser.output_to_mysql()
+
+    # conn = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
+    # for uid, profile in profiles.items():
+    #     columns = "(uid"
+    #     val_format = "(%s"
+    #     values = [uid]    
+    #     for col, val in profile.items():
+    #         columns += (", " + col)
+    #         val_format += (", " + "%s")
+    #         values.append(val)
+    #     columns += ")"
+    #     val_format += ")"
+    #     sql = "insert into slot_user_profile_tmp " + columns + " values " + val_format
+    #     conn.query(sql, values)

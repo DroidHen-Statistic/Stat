@@ -1,3 +1,9 @@
+'''
+这里是利用用户信息进行付费预测
+使用的数据是数据库slot_user_profile_tmp 或者 slot_churn_profile里的数据
+
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 # plt.switch_backend('agg')  # 服务器上跑
@@ -13,6 +19,7 @@ from utils import *
 
 from MysqlConnection import MysqlConnection
 from sklearn import preprocessing
+from sklearn.preprocessing import MinMaxScaler
 import random
 from sklearn.pipeline import Pipeline
 
@@ -46,9 +53,9 @@ def plot_tree():
     graph.write_pdf(os.path.join(path,"tree.pdf"))
 
 def train(x, y):
-    scaler = preprocessing.StandardScaler()
+    scaler = MinMaxScaler()
     # x = scaler.fit_transform(x)
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3)
 
     pay_count = np.sum(y)
     print("pay_count: %d" %pay_count)
@@ -57,17 +64,18 @@ def train(x, y):
     # x_train = x
     # y_train = y
 
-    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 7, class_weight = {0:1,1:5},min_samples_split = 9, min_samples_leaf = 10),
-        "RF":RandomForestClassifier(n_estimators = 20, max_depth = 7, class_weight = {0:1,1:5}, min_samples_split = 10, min_samples_leaf = 10, n_jobs = 2),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier()}
+    clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 9, class_weight = {0:1,1:5},min_samples_split = 21, min_samples_leaf = 21),
+        "RF":RandomForestClassifier(n_estimators = 20, max_depth = 8, class_weight = {0:1,1:5}, min_samples_split = 20, min_samples_leaf = 20, n_jobs = 2),"ExtraTrees":ExtraTreesClassifier(),"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier()}
     # clfs = {"RF":RandomForestClassifier(max_depth = 10)}
     # clfs = {"AdaBoost":AdaBoostClassifier(),"GBDT":GradientBoostingClassifier()}
-    # clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 7)} 
+    # clfs = {"DT":tree.DecisionTreeClassifier(max_depth = 9, class_weight = {0:1,1:5},min_samples_split = 21, min_samples_leaf = 21)} 
     for name, clf in clfs.items():
         print("------%s-------" % name)
         # pipe_lr = Pipeline([('feature_selection', SelectKBest(lambda X, Y: np.array(list(map(lambda x:pearsonr(x, Y)[0], X.T))).T, k=7)),('clf', clf)])
         # pipe_lr = Pipeline([('feature_selection',SelectKBest(other_util.mul_pearson, k=7)),('clf', clf)])
-        # pipe_lr = Pipeline([('feature_selection',VarianceThreshold(threshold=0)),('clf', clf)])
-        pipe_lr = Pipeline([('feature_selection', RFECV(estimator=clf, step=1, cv=3,scoring='recall')),('clf', clf)])
+        # pipe_lr = Pipeline([('scaler', scaler),('feature_selection',VarianceThreshold(threshold = 0.01)),('clf', clf)])
+        pipe_lr = Pipeline([('clf', clf)])
+        # pipe_lr = Pipeline([('feature_selection', RFECV(estimator=clf, step=1, cv=3, scoring='recall')),('clf', clf)])
         cross_accuracy = np.mean(cross_val_score(pipe_lr, x_train,
                                 y_train, scoring="accuracy", cv=10))
         cross_recall = np.mean(cross_val_score(pipe_lr, x_train,
@@ -87,7 +95,7 @@ def train(x, y):
         # print(y_test)
         pay_count = np.sum(y_test)
         pipe_lr.fit(x_train, y_train)
-        print(pipe_lr.named_steps['feature_selection'].get_support(indices=True))
+        # print(pipe_lr.named_steps['feature_selection'].get_support(indices=True))
         y_predict = pipe_lr.predict(x_test)
         # print(y_predict)
         # print(pipe_lr.named_steps['clf'].theta_)
@@ -108,26 +116,26 @@ def train(x, y):
         print('Test accuracy: %.3f pay_count: %d recall: %f precision : %f f1 : %f' % (pipe_lr.score(x_test, y_test), pay_count, recall, precision, f1))
 
         # 画PRC曲线
-        # y_score = pipe_lr.decision_function(x_test)
-        # from sklearn.metrics import average_precision_score
-        # average_precision = average_precision_score(y_test, y_score)
+        y_score = pipe_lr.predict_proba(x_test)
+        from sklearn.metrics import average_precision_score
+        average_precision = average_precision_score(y_test, y_score[:,1])
 
-        # print('Average precision-recall score: {0:0.2f}'.format(
-        #       average_precision))
+        print('Average precision-recall score: {0:0.2f}'.format(
+              average_precision))
         
-        # precision, recall, _ = precision_recall_curve(y_test, y_score)
-
+        precision, recall, _ = precision_recall_curve(y_test, y_score[:,1])
+        plt.plot(recall, precision, color='b')
         # plt.step(recall, precision, color='b', alpha=0.2,
-        #          where='post')
+                 # where='post')
         # plt.fill_between(recall, precision, step='post', alpha=0.2,
-        #                  color='b')
-        # plt.xlabel('Recall')
-        # plt.ylabel('Precision')
-        # plt.ylim([0.0, 1.05])
-        # plt.xlim([0.0, 1.0])
-        # plt.title('2-class Precision-Recall curve: AUC={0:0.2f}'.format(
-        #   average_precision))
-        # plt.show()
+                         # color='b')
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.ylim([0.0, 1.05])
+        plt.xlim([0.0, 1.0])
+        plt.title('2-class Precision-Recall curve: AUC={0:0.2f}'.format(
+          average_precision))
+        plt.show()
         
 
         # 画ROC曲线
@@ -140,60 +148,80 @@ def train(x, y):
         fpr, tpr, thresholds = roc_curve(y_test, probas_[:, 1])
         roc_auc = auc(fpr, tpr)
         #画图，只需要plt.plot(fpr,tpr),变量roc_auc只是记录auc的值，通过auc()函数能计算出来  
-        plt.plot(fpr, tpr, lw=1, label='ROC fold %d (area = %0.2f)' % (1, roc_auc))
+        plt.plot(fpr, tpr, lw=1, label='ROC (area = %0.2f)' % (roc_auc))
       
         #画对角线
         plt.plot([0, 1], [0, 1], '--', color=(0.6, 0.6, 0.6), label='Luck')
         
-
+        
         plt.xlim([-0.05, 1.05])
         plt.ylim([-0.05, 1.05])
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
-        plt.title('Receiver operating characteristic example')
+        plt.title('Receiver operating curve')
         plt.legend(loc="lower right")
+        path = file_util.get_figure_path("slot", "predict_purchase", name)
+        plt.savefig(os.path.join(path, "ROC"))
         plt.show()
 
+        
 
 
-        features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "average_bet", "bonus_ratio", "locale"]
+
+        # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "average_bet", "bonus_ratio", "spin_per_active_day", "bonus_per_active_day", "locale"]
         # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win"]
+        features = ["average_day_active_time","average_login_interval", "average_spin_interval", "average_bonus_win", "spin_per_active_day", "bonus_per_active_day","average_bet", "bonus_ratio", "free_spin_ratio", "coin"]
         class_names = ["non-purchase", "purchase"]
         # 决策树
         if name == "DT":
             path = file_util.get_figure_path("slot", "predict_purchase", "DT")
-            dot_data = tree.export_graphviz(pipe_lr.named_steps['clf'], out_file=None, 
-                                                                        feature_names=features, 
+            dot_data = tree.export_graphviz(pipe_lr.named_steps['clf'], out_file=None,
+                                                                        feature_names=features,
                                                                         class_names=class_names,
-                                                                        filled=True, 
+                                                                        filled=True,
                                                                         rounded=True,
                                                                         impurity=False)
             graph = pydotplus.graph_from_dot_data(dot_data)
-            graph.write_pdf(os.path.join(path, "tree_weight_1_5_min_leaf_sample_10_max_depth_7.pdf"))
+            graph.write_pdf(os.path.join(path, "tree_per_day_without_feature_selection.pdf"))
 
         # 随机森林
         if name == "RF":
-            path = file_util.get_figure_path("slot", "predict_purchase", "RF")
+            path = file_util.get_figure_path("slot", "predict_purchase", "RF", "tree_per_day_without_feature_selection_activeday_7")
             DTs = pipe_lr.named_steps['clf'].estimators_
             for i, dt in enumerate(DTs):
-                dot_data = tree.export_graphviz(dt, out_file=None, 
-                                                    feature_names=features, 
-                                                    filled=True, 
+                dot_data = tree.export_graphviz(dt, out_file=None,
+                                                    feature_names=features,
+                                                    filled=True,
                                                     rounded=True,
                                                     class_names=class_names,
                                                     impurity=False)
                 graph = pydotplus.graph_from_dot_data(dot_data) 
                 graph.write_pdf(os.path.join(path, str(i) + ".pdf"))
 
+        # adaboost
+        if name == "AdaBoost":
+            path = file_util.get_figure_path("slot", "predict_purchase", "AdaBoost", "tree_per_day_without_feature_selection_activeday_7")
+            DTs = pipe_lr.named_steps['clf'].estimators_
+            for i, dt in enumerate(DTs):
+                dot_data = tree.export_graphviz(dt, out_file=None,
+                                                    feature_names=features,
+                                                    filled=True,
+                                                    rounded=True,
+                                                    class_names=class_names,
+                                                    impurity=False)
+                graph = pydotplus.graph_from_dot_data(dot_data)
+                graph.write_pdf(os.path.join(path, str(i) + ".pdf"))
+
 if __name__ == "__main__":
     conn = conn = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
-    features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "average_bet", "bonus_ratio"]
+    # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "average_bet", "bonus_ratio", "spin_per_active_day", "bonus_per_active_day"]
     # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win"]
+    features = ["average_day_active_time","average_login_interval", "average_spin_interval", "average_bonus_win", "spin_per_active_day", "bonus_per_active_day","average_bet", "bonus_ratio", "free_spin_ratio", "coin"]
     locales = ["US","MY","HU","MM","RU","IT","BR","DE","GR","EG","ES","FR","PT","PL","AU","CA","ID","RO","GB","UA","CZ","NL","SG"]
     x = []
     y = []
     # sql = "select uid, level, coin, purchase_times, active_days, average_day_active_time, average_login_interval, average_spin_interval from slot_user_profile where purchase_times > 0"
-    sql = "select * from slot_user_profile_tmp where purchase_times > 0"
+    sql = "select * from slot_purchase_profile where purchase_times > 0 and active_days > 1"
     result_pay = conn.query(sql)
     pay_num = len(result_pay)
     for record in result_pay:
@@ -211,17 +239,17 @@ if __name__ == "__main__":
         # d += locale_encode
 
         # locale 数字编码
-        loc = record["locale"]
-        if loc in locales:
-            d.append(locales.index(loc))
-        else:
-            d.append(-1)
+        # loc = record["locale"]
+        # if loc in locales:
+        #     d.append(locales.index(loc))
+        # else:
+        #     d.append(-1)
 
         x.append(d)
         y.append(1)
 
     # sql = "select uid, level, coin, purchase_times, active_days, average_day_active_time, average_login_interval, average_spin_interval from slot_user_profile where purchase_times = 0"
-    sql = "select * from slot_user_profile_tmp where purchase_times = 0"
+    sql = "select * from slot_purchase_profile where purchase_times = 0 and active_days > 1"
     result_no_pay = conn.query(sql)
     result_no_pay = random.sample(result_no_pay, 5 * pay_num)
     no_pay_num = len(result_no_pay)
@@ -241,11 +269,11 @@ if __name__ == "__main__":
 
 
         # locale 数字编码
-        loc = record["locale"]
-        if loc in locales:
-            d.append(locales.index(loc))
-        else:
-            d.append(-1)
+        # loc = record["locale"]
+        # if loc in locales:
+        #     d.append(locales.index(loc))
+        # else:
+        #     d.append(-1)
 
         x.append(d)
         y.append(0)

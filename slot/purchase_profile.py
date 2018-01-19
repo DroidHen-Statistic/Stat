@@ -76,8 +76,17 @@ class UserProfile(object):
     def __init__(self, filename):
         self.after_read_file = filename
         self.ipdb = other_util.IPDB(os.path.join(config.base_dir, "ipdb.csv"))
-        self.profiles = {}
-        self.user_info = {}
+        profile_file = os.path.join(os.path.dirname(__file__), "data", "slot_purchase_profile")
+        user_info_file = os.path.join(os.path.dirname(__file__), "data", "slot_purchase_user_info")
+        if not os.path.exists(profile_file):
+            self.profiles = {}
+            self.user_info = {}
+        else:
+            with open(profile_file, 'rb') as f:
+                profiles = pickle.load(f)
+            with open(user_info_file, 'rb') as f:
+                user_info = pickle.load(f)
+        
         self.current_date = date_util.int_to_date(20170401)
 
     def max_bet(self, level):
@@ -112,6 +121,11 @@ class UserProfile(object):
             if "average_day_active_time" not in profile:
                 profile["average_day_active_time"] = self.user_info[uid].get("day_active_time", 0) + self.user_info[uid].get("current_active_time", 0)
                 profile["active_days"] = 1
+            first_active_time = profile.get("first_active_time", 0)
+            last_active_time = profile.get("last_active_time", 0)
+            if (self.current_date - last_active_time).days > 10:
+                profile["churn"] = 1
+            lifetime = (last_active_time - first_active_time).days + 1
             spin_times = profile.get("spin_times", 0)
             bonus_times = profile.get("bonus_times", 0)
             active_days = profile.get("active_days", 0)
@@ -120,17 +134,19 @@ class UserProfile(object):
             profile["spin_per_active_day"] = spin_times / active_days
             profile["bonus_per_active_day"] = bonus_times / active_days
             profile["free_spin_ratio"] = free_spin_times / spin_times if spin_times != 0 else bonus_times
-            if profile.get("is_new", 0) == 1:
-                three_day_spin_times = profile.get("3day_spin_times", 0)
-                three_day_free_spin_times = profile.get("3day_free_spin_times", 0)
-                three_day_bonus_times = profile.get("3day_bonus_times", 0)
-                seven_day_spin_times = profile.get("7day_spin_times", 0)
-                seven_day_free_spin_times = profile.get("7day_free_spin_times", 0)
-                seven_day_bonus_times = profile.get("3day_bonus_times", 0)
-                profile["3day_bonus_ratio"] = three_day_bonus_times / three_day_spin_times if three_day_spin_times!=0 else three_day_bonus_times
-                profile["7day_bonus_ratio"] = seven_day_bonus_times / seven_day_spin_times if seven_day_spin_times!=0 else seven_day_bonus_times
-                profile["3day_free_spin_ratio"] = three_day_free_spin_times / three_day_spin_times if three_day_spin_times!=0 else three_day_free_spin_times
-                profile["7day_free_spin_ratio"] = seven_day_free_spin_times / seven_day_spin_times if seven_day_spin_times!=0 else seven_day_free_spin_times
+            profile["lifetime"] = lifetime
+            profile["active_ratio"] = active_days / lifetime
+            # if profile.get("is_new", 0) == 1:
+            #     three_day_spin_times = profile.get("3day_spin_times", 0)
+            #     three_day_free_spin_times = profile.get("3day_free_spin_times", 0)
+            #     three_day_bonus_times = profile.get("3day_bonus_times", 0)
+            #     seven_day_spin_times = profile.get("7day_spin_times", 0)
+            #     seven_day_free_spin_times = profile.get("7day_free_spin_times", 0)
+            #     seven_day_bonus_times = profile.get("3day_bonus_times", 0)
+            #     profile["3day_bonus_ratio"] = three_day_bonus_times / three_day_spin_times if three_day_spin_times!=0 else three_day_bonus_times
+            #     profile["7day_bonus_ratio"] = seven_day_bonus_times / seven_day_spin_times if seven_day_spin_times!=0 else seven_day_bonus_times
+            #     profile["3day_free_spin_ratio"] = three_day_free_spin_times / three_day_spin_times if three_day_spin_times!=0 else three_day_free_spin_times
+            #     profile["7day_free_spin_ratio"] = seven_day_free_spin_times / seven_day_spin_times if seven_day_spin_times!=0 else seven_day_free_spin_times
 
 
     def parse_login(self, line):
@@ -140,14 +156,18 @@ class UserProfile(object):
         ip = line[LoginFormat.IP.value]
         is_new = int(line[LoginFormat.IS_NEW.value])
         locale = self.ipdb.ip2cc(ip)
+        self.current_date = time
         if uid not in self.profiles:
             self.profiles[uid] = {}
             self.user_info[uid] = {}
-            self.profiles[uid]["first_active_time"] = date_util.datetime_to_int(time)
+            self.profiles[uid]["first_active_time"] = time
             if is_new == 1:
                 self.profiles[uid]["is_new"] = 1
             self.profiles[uid]["login_times"] = 1
             self.profiles[uid]["spin_times"] = 0
+            self.profiles[uid]["churn"] = 0
+        elif self.profiles[uid].get("purchase_times", 0) >= 1:
+            return
         else:
             login_interval = (time - self.user_info[uid]["last_login_time"]).total_seconds()
             login_times = self.profiles[uid]["login_times"]
@@ -186,6 +206,7 @@ class UserProfile(object):
         bet = int(line[SpinFormat.BET.value])
         lines = int(line[SpinFormat.LINES.value])
         level = int(line[SpinFormat.LEVEL.value])
+        self.current_date = time
         if line[SpinFormat.WIN_FREE_SPIN.value] != "":
             free_spin_times = int(line[SpinFormat.WIN_FREE_SPIN.value])
         else:
@@ -197,11 +218,13 @@ class UserProfile(object):
             self.profiles[uid] = {}
             self.user_info[uid] = {}
             self.user_info[uid]["last_login_time"] = time
-            self.profiles[uid]["first_active_time"] = date_util.datetime_to_int(time)
+            self.profiles[uid]["first_active_time"] = time
             self.profiles[uid]["login_times"] = 1
             self.profiles[uid]["spin_times"] = 1
             self.user_info[uid]["last_spin_time"] = time
             self.user_info[uid]["is_new"] = 0
+        elif self.profiles[uid].get("purchase_times", 0) >= 1:
+            return
         else:
             self.profiles[uid]["spin_times"] += 1
             if self.user_info[uid]["last_spin_time"] != -1:
@@ -222,16 +245,15 @@ class UserProfile(object):
 
         self.profiles[uid]["level"] = level
         self.profiles[uid]["coin"] = coin
-        self.profiles[uid]["machine_" + str(machine)] = self.profiles[uid].setdefault("machine_" + str(machine), 0) + 1
 
-        if self.profiles[uid].get("is_new",0):
-            reg_time = date_util.int_to_datetime(self.profiles[uid].get("first_active_time", 0))
-            if (time - reg_time).days <= 3:
-                self.profiles[uid]["3day_spin_times"] = self.profiles[uid].get("3day_spin_times", 0) + 1
-                self.profiles[uid]["3day_free_spin_times"] = self.profiles[uid].get("3day_free_spin_times", 0) + free_spin_times
-            if (time - reg_time).days <= 7:
-                self.profiles[uid]["7day_spin_times"] = self.profiles[uid].get("7day_spin_times", 0) + 1
-                self.profiles[uid]["7day_free_spin_times"] = self.profiles[uid].get("7day_free_spin_times", 0) + free_spin_times
+        # if self.profiles[uid].get("is_new",0):
+        #     reg_time = date_util.int_to_datetime(self.profiles[uid].get("first_active_time", 0))
+        #     if (time - reg_time).days <= 3:
+        #         self.profiles[uid]["3day_spin_times"] = self.profiles[uid].get("3day_spin_times", 0) + 1
+        #         self.profiles[uid]["3day_free_spin_times"] = self.profiles[uid].get("3day_free_spin_times", 0) + free_spin_times
+        #     if (time - reg_time).days <= 7:
+        #         self.profiles[uid]["7day_spin_times"] = self.profiles[uid].get("7day_spin_times", 0) + 1
+        #         self.profiles[uid]["7day_free_spin_times"] = self.profiles[uid].get("7day_free_spin_times", 0) + free_spin_times
 
         
         current_active_time = self.user_info[uid].get("current_active_time",0)
@@ -258,20 +280,22 @@ class UserProfile(object):
         uid = int(line[PlayBonusFormat.UID.value])
         win = int(line[PlayBonusFormat.TOTAL_WIN.value])
         bet = int(line[PlayBonusFormat.BET.value]) / 100
+        if self.profiles[uid].get("purchase_times", 0) >= 1:
+            return
         if bet != 0:
             avg_bonus_win = self.profiles[uid].get("average_bonus_win", 0)
             bonus_times = self.profiles[uid].get("bonus_times", 0)
             self.profiles[uid]["average_bonus_win"] = (avg_bonus_win * bonus_times + win / bet) / (bonus_times + 1)
             self.profiles[uid]["bonus_times"] = bonus_times + 1
 
-        if self.profiles[uid].get("is_new",0):
-            reg_time = date_util.int_to_datetime(self.profiles[uid].get("first_active_time", 0))
-            if (time - reg_time).days <= 3:
-                self.profiles[uid]["3day_bonus_times"] = self.profiles[uid].get("3day_bonus_times", 0) + 1
-            if (time - reg_time).days <= 7:
-                self.profiles[uid]["7day_bonus_times"] = self.profiles[uid].get("7day_boinus_times", 0) + 1
+        # if self.profiles[uid].get("is_new",0):
+        #     reg_time = date_util.int_to_datetime(self.profiles[uid].get("first_active_time", 0))
+        #     if (time - reg_time).days <= 3:
+        #         self.profiles[uid]["3day_bonus_times"] = self.profiles[uid].get("3day_bonus_times", 0) + 1
+        #     if (time - reg_time).days <= 7:
+        #         self.profiles[uid]["7day_bonus_times"] = self.profiles[uid].get("7day_boinus_times", 0) + 1
 
-        self.current_date = datetime(time.year, time.month, time.day)
+        self.current_date = time
         current_active_time = self.user_info[uid].get("current_active_time",0)
         if current_day - self.user_info[uid].get("last_active_day", current_day) >= timedelta(days = 1): #如果发现已经到了新的一天
             
@@ -292,8 +316,10 @@ class UserProfile(object):
         time = date_util.int_to_datetime(int(line[SpinFormat.DATETIME.value]))
         current_day = datetime(time.year, time.month, time.day, 0, 0, 0)
         uid = int(line[PurchaseFormat.UID.value])
+        if self.profiles[uid].get("purchase_times", 0) >= 1:
+            return
         self.profiles[uid]["purchase_times"] = self.profiles[uid].get("purchase_times", 0) + 1
-        self.current_date = datetime(time.year, time.month, time.day)
+        self.current_date = time
 
 
         current_active_time = self.user_info[uid].get("current_active_time",0)
@@ -312,17 +338,18 @@ class UserProfile(object):
         self.profiles[uid]["last_active_time"] = time
 
 
-
 def get_profile():
     after_read_file = os.path.join(config.log_base_dir, "after_read")
     parser = UserProfile(after_read_file)
    
-    profile_file = os.path.join(os.path.dirname(__file__), "data", "user_profiles_tmp")
+    profile_file = os.path.join(os.path.dirname(__file__), "data", "slot_purchase_profile")
+    user_info_file = os.path.join(os.path.dirname(__file__), "data", "slot_purchase_user_info")
     if not os.path.exists(profile_file):
         parser.parse_log()
         profiles = parser.profiles
         with open(profile_file, 'wb') as f:
             pickle.dump(profiles, f)
+
     else:
         with open(profile_file, 'rb') as f:
             profiles = pickle.load(f)
@@ -343,5 +370,5 @@ if __name__ == "__main__":
             values.append(val)
         columns += ")"
         val_format += ")"
-        sql = "insert into slot_user_profile_tmp " + columns + " values " + val_format
+        sql = "insert into slot_purchase_profile " + columns + " values " + val_format
         conn.query(sql, values)
