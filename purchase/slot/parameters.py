@@ -1,4 +1,4 @@
-Xgboost_paras = {
+xgb_paras = {
         'n_estimators' : [73],
         'gamma': [0], 
         'learning_rate' : [0.1],

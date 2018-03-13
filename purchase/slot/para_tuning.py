@@ -6,9 +6,6 @@ sys.path.append(head_path)
 sys.path.append(os.path.dirname(head_path))
 import config
 
-old_dir = os.getcwd()
-os.chdir(os.path.join(config.base_dir, "purchase", "slot"))
-
 from xgboost import XGBClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 import xgboost as xgb
@@ -23,7 +20,7 @@ import random
 from imp import reload
 
 
-import paras
+import parameters
 import pickle
 
 def mean_squared_error_(ground_truth, predictions):
@@ -55,37 +52,13 @@ class ParaTuner(object):
 
 
 if __name__ == "__main__":
-    conn = conn = MysqlConnection(config.dbhost,config.dbuser,config.dbpassword,config.dbname)
-    # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win", "average_bet", "bonus_ratio", "spin_per_active_day", "bonus_per_active_day"]
-    # features = ["login_times", "spin_times", "bonus_times", "active_days", "average_day_active_time", "average_login_interval", "average_spin_interval", "average_bonus_win"]
+    old_dir = os.getcwd()
+    os.chdir(os.path.join(config.base_dir, "purchase", "slot"))
+
+    reader = DataReader() 
     features = ["average_day_active_time","average_login_interval", "average_spin_interval", "average_bonus_win", "spin_per_active_day", "bonus_per_active_day","average_bet", "bonus_ratio", "free_spin_ratio", "coin"]
-    x = []
-    y = []
-    # sql = "select uid, level, coin, purchase_times, active_days, average_day_active_time, average_login_interval, average_spin_interval from slot_user_profile where purchase_times > 0"
-    sql = "select * from slot_purchase_profile where purchase_times > 0 and active_days > 1"
-    result_pay = conn.query(sql)
-    pay_num = len(result_pay)
-    for record in result_pay:
-        d = []
-        for feature in features:
-            d.append(record[feature])
-        x.append(d)
-        y.append(1)
 
-    # sql = "select uid, level, coin, purchase_times, active_days, average_day_active_time, average_login_interval, average_spin_interval from slot_user_profile where purchase_times = 0"
-    sql = "select * from slot_purchase_profile where purchase_times = 0 and active_days > 1"
-    result_no_pay = conn.query(sql)
-    result_no_pay = random.sample(result_no_pay, 5 * pay_num)
-    no_pay_num = len(result_no_pay)
-    for record in result_no_pay:
-        d = []
-        for feature in features:
-            d.append(record[feature])
-        x.append(d)
-        y.append(0)
-
-    x = np.array(x)
-    y = np.array(y)
+    x, y = reader.read("slot_purchase_profile", features)
 
 
     cf = GradientBoostingClassifier(random_state = 0)
@@ -93,7 +66,7 @@ if __name__ == "__main__":
     p = ParaTuner(cf, AUC)
 
     while True:
-        para_grid = paras.GBDT_paras
+        para_grid = parameters.GBDT_paras
         model = p.tune(x,y,para_grid)
         str = input("Modify the parameter: ")
         if str == 's':
@@ -101,7 +74,7 @@ if __name__ == "__main__":
                 pickle.dump(model, f)
             break
         else:
-            reload(paras)
+            reload(parameters)
 
-os.chdir(old_dir)
+    os.chdir(old_dir)
 
