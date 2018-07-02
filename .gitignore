@@ -6,6 +6,9 @@ figures
 test.py
 .vscode
 tmp
+*.model
+model
+
 
 
 

@@ -1,0 +1,139 @@
+
+<class 'type'>
+%------------------------------------------------------------%
+
+<class 'type'>
+%------------------------------------------------------------%
+
+<class 'type'>
+%------------------------------------------------------------%
+0  baseline  0:
+0.855131	['average_day_active_time', 'average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_day_active_time  0:
+0.849095	['average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_login_interval  0:
+0.698189	['average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_spin_interval  0:
+0.691147	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  spin_per_active_day  0:
+0.642857	['average_bonus_win', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  bonus_per_active_day  0:
+0.600604	['average_bonus_win', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+cross term  average_bonus_win+coin  0:
+0.546278	['average_bonus_win', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin', 'average_bonus_win+coin']
+cross term  average_bonus_win+free_spin_ratio  0:
+0.515091	['average_bonus_win', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin', 'average_bonus_win+coin', 'average_bonus_win+free_spin_ratio']
+cross term  average_bonus_win*average_bet  0:
+0.502012	['average_bonus_win', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin', 'average_bonus_win+coin', 'average_bonus_win+free_spin_ratio', 'average_bonus_win*average_bet']
+cross term  average_bet-free_spin_ratio  0:
+0.490946	['average_bonus_win', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin', 'average_bonus_win+coin', 'average_bonus_win+free_spin_ratio', 'average_bonus_win*average_bet', 'average_bet-free_spin_ratio']
+
+<class 'type'>
+%------------------------------------------------------------%
+0  baseline  0:
+0.906439	['average_day_active_time', 'average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_day_active_time  0:
+0.903421	['average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_login_interval  0:
+0.81992	['average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_spin_interval  0:
+0.750503	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+
+<class 'type'>
+%------------------------------------------------------------%
+0  baseline  0:
+0.8833	['average_day_active_time', 'average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_day_active_time  0:
+0.87827	['average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_login_interval  0:
+0.83501	['average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_spin_interval  0:
+0.798793	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  spin_per_active_day  0:
+0.749497	['average_bonus_win', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  bonus_per_active_day  0:
+0.66499	['average_bonus_win', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_bet  0:
+0.656942	['average_bonus_win', 'bonus_ratio', 'free_spin_ratio', 'coin']
+1  average_bet  0:
+0.650905	['average_bonus_win', 'bonus_ratio', 'free_spin_ratio', 'coin', 'average_bet']
+reverse  coin  0:
+0.622736	['average_bonus_win', 'bonus_ratio', 'free_spin_ratio', 'average_bet']
+reverse  bonus_ratio  0:
+0.621227	['average_bonus_win', 'free_spin_ratio', 'average_bet']
+1  coin  0:
+0.603622	['average_bonus_win', 'free_spin_ratio', 'average_bet', 'coin']
+cross term  average_bonus_win+coin  0:
+0.55835	['average_bonus_win', 'free_spin_ratio', 'average_bet', 'coin', 'average_bonus_win+coin']
+cross term  free_spin_ratio-average_bet  0:
+0.55835	['average_bonus_win', 'free_spin_ratio', 'average_bet', 'coin', 'average_bonus_win+coin', 'free_spin_ratio-average_bet']
+cross term  average_bet*average_bonus_win  0:
+0.54829	['average_bonus_win', 'free_spin_ratio', 'average_bet', 'coin', 'average_bonus_win+coin', 'free_spin_ratio-average_bet', 'average_bet*average_bonus_win']
+cross term  coin*coin  0:
+0.536217	['average_bonus_win', 'free_spin_ratio', 'average_bet', 'coin', 'average_bonus_win+coin', 'free_spin_ratio-average_bet', 'average_bet*average_bonus_win', 'coin*coin']
+cross term  coin+average_bet  0:
+0.535211	['average_bonus_win', 'free_spin_ratio', 'average_bet', 'coin', 'average_bonus_win+coin', 'free_spin_ratio-average_bet', 'average_bet*average_bonus_win', 'coin*coin', 'coin+average_bet']
+cross term  coin-average_bet  0:
+0.529175	['average_bonus_win', 'free_spin_ratio', 'average_bet', 'coin', 'average_bonus_win+coin', 'free_spin_ratio-average_bet', 'average_bet*average_bonus_win', 'coin*coin', 'coin+average_bet', 'coin-average_bet']
+
+<class 'type'>
+%------------------------------------------------------------%
+0  baseline  0:
+0.938632	['average_day_active_time', 'average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_day_active_time  0:
+0.93159	['average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_login_interval  0:
+0.892354	['average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_spin_interval  0:
+0.814889	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  spin_per_active_day  0:
+0.800805	['average_bonus_win', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  bonus_per_active_day  0:
+0.724346	['average_bonus_win', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+reverse  average_bet  0:
+0.722334	['average_bonus_win', 'bonus_ratio', 'free_spin_ratio', 'coin']
+1  average_bet  0:
+0.700201	['average_bonus_win', 'bonus_ratio', 'free_spin_ratio', 'coin', 'average_bet']
+reverse  free_spin_ratio  0:
+0.700201	['average_bonus_win', 'bonus_ratio', 'coin', 'average_bet']
+cross term  average_bonus_win+average_bet  0:
+0.647887	['average_bonus_win', 'bonus_ratio', 'coin', 'average_bet', 'average_bonus_win+average_bet']
+
+<class 'type'>
+%------------------------------------------------------------%
+0  baseline  0:
+0.93662	['average_day_active_time', 'average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+1  active_days  0:
+0.928571	['average_day_active_time', 'average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin', 'active_days']
+3  bonus_times  0:
+0.927565	['average_day_active_time', 'average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin', 'bonus_times']
+
+<class 'type'>
+%------------------------------------------------------------%
+0  baseline  0:
+0.838028	['average_day_active_time', 'average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin']
+6  is_new  0:
+0.83501	['average_day_active_time', 'average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin', 'is_new']
+reverse  average_day_active_time  0:
+0.814889	['average_login_interval', 'average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin', 'is_new']
+reverse  average_login_interval  0:
+0.774648	['average_spin_interval', 'average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin', 'is_new']
+reverse  average_spin_interval  0:
+0.765594	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'average_bet', 'bonus_ratio', 'free_spin_ratio', 'coin', 'is_new']
+reverse  average_bet  0:
+0.742455	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'bonus_ratio', 'free_spin_ratio', 'coin', 'is_new']
+reverse  bonus_ratio  0:
+0.596579	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'free_spin_ratio', 'coin', 'is_new']
+cross term  bonus_per_active_day+is_new  0:
+0.594567	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'free_spin_ratio', 'coin', 'is_new', 'bonus_per_active_day+is_new']
+cross term  bonus_per_active_day-is_new  0:
+0.590543	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'free_spin_ratio', 'coin', 'is_new', 'bonus_per_active_day+is_new', 'bonus_per_active_day-is_new']
+cross term  bonus_per_active_day/free_spin_ratio  0:
+0.579477	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'free_spin_ratio', 'coin', 'is_new', 'bonus_per_active_day+is_new', 'bonus_per_active_day-is_new', 'bonus_per_active_day/free_spin_ratio']
+cross term  bonus_per_active_day+bonus_per_active_day  0:
+0.554326	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'free_spin_ratio', 'coin', 'is_new', 'bonus_per_active_day+is_new', 'bonus_per_active_day-is_new', 'bonus_per_active_day/free_spin_ratio', 'bonus_per_active_day+bonus_per_active_day']
+cross term  coin-spin_per_active_day  0:
+0.554326	['average_bonus_win', 'spin_per_active_day', 'bonus_per_active_day', 'free_spin_ratio', 'coin', 'is_new', 'bonus_per_active_day+is_new', 'bonus_per_active_day-is_new', 'bonus_per_active_day/free_spin_ratio', 'bonus_per_active_day+bonus_per_active_day', 'coin-spin_per_active_day']
+
+<class 'type'>
+%------------------------------------------------------------%

@@ -71,6 +71,9 @@ bet_list = [10,25,50,100,200,500,1000,1500,2000,2500,5000,10000,15000,20000,2500
 level_list = [1,2,3,4,5,7,9,15,20,25,30,35,40,50,100,200]
 bet_map = {1:200, 2:500, 3:1000, 4:1500, 5:2000, 7:2500, 9:5000, 15:10000, 20: 15000, 25:20000, 30:25000, 35:30000, 40:50000, 50:100000, 100: 200000, 200:250000}
 
+bet_list_new = [100, 200, 400, 600, 1000, 1600, 2000, 2400, 3000, 3600, 4000, 4400, 5000, 5600, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 16000, 18000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000]
+level_list_new = [1,2,3,4,6,8,11,14,17,20,23,26,32,38,44,50,56,62,68,74,80,90,100,110,120,130,140,150,160,170,180,190]
+bet_map_new = {1:200, 2:400, 3:600, 4:1000, 6:1600, 8:2000, 11:2400, 14:3000, 17:3600, 20:4000, 23:4400, 26:5000, 32:3600, 38:6000, 44: 8000, 50:9000, 56:10000, 62:11000, 68:12000, 74:13000, 80:16000, 90:18000, 100:20000, 110:25000, 120:30000, 130:35000, 140:40000, 150:45000, 160: 50000, 170:55000, 180: 60000, 190:65000}
 
 class UserProfile(object):
     def __init__(self, filename):
@@ -90,20 +93,20 @@ class UserProfile(object):
         self.current_date = date_util.int_to_date(20170401)
 
     def max_bet(self, level):
-        low, high = 0, len(level_list)-1  
+        low, high = 0, len(level_list_new)-1  
         pos = high
         while low<high:  
             mid = int((low+high)/2 + 1)
-            if level_list[mid] <= level:  
+            if level_list_new[mid] <= level:  
                 low = mid 
                 pos = low
             else:#>
                 high = mid - 1    
-        return bet_map[level_list[pos]]
+        return bet_map_new[level_list_new[pos]]
 
     def bet_ratio(self, bet, level):
         tmp = self.max_bet(level) 
-        return (bet_list.index(bet) + 1) / (bet_list.index(tmp) + 1)
+        return (bet_list_new.index(bet) + 1) / (bet_list_new.index(tmp) + 1)
 
     def parse_log(self):
         with open(self.after_read_file, 'r') as f:
@@ -126,6 +129,7 @@ class UserProfile(object):
             if (self.current_date - last_active_time).days > 10:
                 profile["churn"] = 1
             lifetime = (last_active_time - first_active_time).days + 1
+
             spin_times = profile.get("spin_times", 0)
             bonus_times = profile.get("bonus_times", 0)
             active_days = profile.get("active_days", 0)

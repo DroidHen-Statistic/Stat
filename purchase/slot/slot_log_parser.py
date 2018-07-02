@@ -1,8 +1,8 @@
 import os
 import sys
 head_path = os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__)))
-# print(head_path)
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#print(head_path)
 sys.path.append(head_path)
 
 from LogParser import LogParser
@@ -69,6 +69,10 @@ level_list = [1,2,3,4,5,7,9,15,20,25,30,35,40,50,100,200]
 bet_map = {1:200, 2:500, 3:1000, 4:1500, 5:2000, 7:2500, 9:5000, 15:10000, 20: 15000, 25:20000, 30:25000, 35:30000, 40:50000, 50:100000, 100: 200000, 200:250000}
 
 
+bet_list_new = [100, 200, 400, 600, 1000, 1600, 2000, 2400, 3000, 3600, 4000, 4400, 5000, 5600, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 16000, 18000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000]
+level_list_new = [1,2,3,4,6,8,11,14,17,20,23,26,32,38,44,50,56,62,68,74,80,90,100,110,120,130,140,150,160,170,180,190]
+bet_map_new = {1:200, 2:400, 3:600, 4:1000, 6:1600, 8:2000, 11:2400, 14:3000, 17:3600, 20:4000, 23:4400, 26:5000, 32:3600, 38:6000, 44: 8000, 50:9000, 56:10000, 62:11000, 68:12000, 74:13000, 80:16000, 90:18000, 100:20000, 110:25000, 120:30000, 130:35000, 140:40000, 150:45000, 160: 50000, 170:55000, 180: 60000, 190:65000}
+
 class SlotPurchaseLogParser(LogParser):
     def __init__(self, newfile, oldfile = "", outfile = ""):
         self.after_read_file = newfile
@@ -82,33 +86,42 @@ class SlotPurchaseLogParser(LogParser):
                 tmp = pickle.load(f)
                 self.profiles = tmp[0]
                 self.user_info = tmp[1]
-        self.current_date = date_util.int_to_date(20170401)
+        self.current_date = date_util.int_to_date(20180101)
 
     def max_bet(self, level):
-        low, high = 0, len(level_list)-1  
+        low, high = 0, len(level_list_new)-1  
         pos = high
         while low<high:  
             mid = int((low+high)/2 + 1)
-            if level_list[mid] <= level:  
+            if level_list_new[mid] <= level:  
                 low = mid 
                 pos = low
             else:#>
                 high = mid - 1    
-        return bet_map[level_list[pos]]
+        return bet_map_new[level_list_new[pos]]
 
     def bet_ratio(self, bet, level):
-        tmp = self.max_bet(level) 
-        return (bet_list.index(bet) + 1) / (bet_list.index(tmp) + 1)
+        tmp = self.max_bet(level)
+        if bet not in bet_list_new:
+            return 0.5
+        else:
+            return (bet_list_new.index(bet) + 1) / (bet_list_new.index(tmp) + 1)
 
     def parse(self):
         if os.path.exists(self.outfile):
-            with open(profile_file, 'rb') as f:
+            with open(self.outfile, 'rb') as f:
                 tmp = pickle.load(f)
                 self.profiles = tmp[0]
                 self.user_info = tmp[1]
             return
+        count = 0
         with open(self.after_read_file, 'r') as f:
             for line in f.readlines():
+                #显示一下进度
+                if count % 10000 == 0:
+                    print(count)
+                count += 1
+
                 line = line.strip().split(' ')
                 if int(line[0]) == ActionType.LOGIN.value:
                     self.parse_login(line)
@@ -122,6 +135,12 @@ class SlotPurchaseLogParser(LogParser):
             if "average_day_active_time" not in profile:
                 profile["average_day_active_time"] = self.user_info[uid].get("day_active_time", 0) + self.user_info[uid].get("current_active_time", 0)
                 profile["active_days"] = 1
+            first_active_time = profile.get("first_active_time", 0)
+            last_active_time = profile.get("last_active_time", 0)
+            if (self.current_date - last_active_time).days > 10:
+                profile["churn"] = 1
+            lifetime = (last_active_time - first_active_time).days + 1
+
             spin_times = profile.get("spin_times", 0)
             bonus_times = profile.get("bonus_times", 0)
             active_days = profile.get("active_days", 0)
@@ -130,17 +149,19 @@ class SlotPurchaseLogParser(LogParser):
             profile["spin_per_active_day"] = spin_times / active_days
             profile["bonus_per_active_day"] = bonus_times / active_days
             profile["free_spin_ratio"] = free_spin_times / spin_times if spin_times != 0 else bonus_times
-            if profile.get("is_new", 0) == 1:
-                three_day_spin_times = profile.get("3day_spin_times", 0)
-                three_day_free_spin_times = profile.get("3day_free_spin_times", 0)
-                three_day_bonus_times = profile.get("3day_bonus_times", 0)
-                seven_day_spin_times = profile.get("7day_spin_times", 0)
-                seven_day_free_spin_times = profile.get("7day_free_spin_times", 0)
-                seven_day_bonus_times = profile.get("3day_bonus_times", 0)
-                profile["3day_bonus_ratio"] = three_day_bonus_times / three_day_spin_times if three_day_spin_times!=0 else three_day_bonus_times
-                profile["7day_bonus_ratio"] = seven_day_bonus_times / seven_day_spin_times if seven_day_spin_times!=0 else seven_day_bonus_times
-                profile["3day_free_spin_ratio"] = three_day_free_spin_times / three_day_spin_times if three_day_spin_times!=0 else three_day_free_spin_times
-                profile["7day_free_spin_ratio"] = seven_day_free_spin_times / seven_day_spin_times if seven_day_spin_times!=0 else seven_day_free_spin_times
+            profile["lifetime"] = lifetime
+            profile["active_ratio"] = active_days / lifetime
+            # if profile.get("is_new", 0) == 1:
+            #     three_day_spin_times = profile.get("3day_spin_times", 0)
+            #     three_day_free_spin_times = profile.get("3day_free_spin_times", 0)
+            #     three_day_bonus_times = profile.get("3day_bonus_times", 0)
+            #     seven_day_spin_times = profile.get("7day_spin_times", 0)
+            #     seven_day_free_spin_times = profile.get("7day_free_spin_times", 0)
+            #     seven_day_bonus_times = profile.get("3day_bonus_times", 0)
+            #     profile["3day_bonus_ratio"] = three_day_bonus_times / three_day_spin_times if three_day_spin_times!=0 else three_day_bonus_times
+            #     profile["7day_bonus_ratio"] = seven_day_bonus_times / seven_day_spin_times if seven_day_spin_times!=0 else seven_day_bonus_times
+            #     profile["3day_free_spin_ratio"] = three_day_free_spin_times / three_day_spin_times if three_day_spin_times!=0 else three_day_free_spin_times
+            #     profile["7day_free_spin_ratio"] = seven_day_free_spin_times / seven_day_spin_times if seven_day_spin_times!=0 else seven_day_free_spin_times
 
 
     def parse_login(self, line):
@@ -150,14 +171,18 @@ class SlotPurchaseLogParser(LogParser):
         ip = line[LoginFormat.IP.value]
         is_new = int(line[LoginFormat.IS_NEW.value])
         locale = self.ipdb.ip2cc(ip)
+        self.current_date = time
         if uid not in self.profiles:
             self.profiles[uid] = {}
             self.user_info[uid] = {}
-            self.profiles[uid]["first_active_time"] = date_util.datetime_to_int(time)
+            self.profiles[uid]["first_active_time"] = time
             if is_new == 1:
                 self.profiles[uid]["is_new"] = 1
             self.profiles[uid]["login_times"] = 1
             self.profiles[uid]["spin_times"] = 0
+            self.profiles[uid]["churn"] = 0
+        elif self.profiles[uid].get("purchase_times", 0) >= 1:
+            return
         else:
             login_interval = (time - self.user_info[uid]["last_login_time"]).total_seconds()
             login_times = self.profiles[uid]["login_times"]
@@ -196,6 +221,8 @@ class SlotPurchaseLogParser(LogParser):
         bet = int(line[SpinFormat.BET.value])
         lines = int(line[SpinFormat.LINES.value])
         level = int(line[SpinFormat.LEVEL.value])
+        # print(uid, bet, time)
+        self.current_date = time
         if line[SpinFormat.WIN_FREE_SPIN.value] != "":
             free_spin_times = int(line[SpinFormat.WIN_FREE_SPIN.value])
         else:
@@ -207,11 +234,13 @@ class SlotPurchaseLogParser(LogParser):
             self.profiles[uid] = {}
             self.user_info[uid] = {}
             self.user_info[uid]["last_login_time"] = time
-            self.profiles[uid]["first_active_time"] = date_util.datetime_to_int(time)
+            self.profiles[uid]["first_active_time"] = time
             self.profiles[uid]["login_times"] = 1
             self.profiles[uid]["spin_times"] = 1
             self.user_info[uid]["last_spin_time"] = time
             self.user_info[uid]["is_new"] = 0
+        elif self.profiles[uid].get("purchase_times", 0) >= 1:
+            return
         else:
             self.profiles[uid]["spin_times"] += 1
             if self.user_info[uid]["last_spin_time"] != -1:
@@ -232,16 +261,15 @@ class SlotPurchaseLogParser(LogParser):
 
         self.profiles[uid]["level"] = level
         self.profiles[uid]["coin"] = coin
-        self.profiles[uid]["machine_" + str(machine)] = self.profiles[uid].setdefault("machine_" + str(machine), 0) + 1
 
-        if self.profiles[uid].get("is_new",0):
-            reg_time = date_util.int_to_datetime(self.profiles[uid].get("first_active_time", 0))
-            if (time - reg_time).days <= 3:
-                self.profiles[uid]["3day_spin_times"] = self.profiles[uid].get("3day_spin_times", 0) + 1
-                self.profiles[uid]["3day_free_spin_times"] = self.profiles[uid].get("3day_free_spin_times", 0) + free_spin_times
-            if (time - reg_time).days <= 7:
-                self.profiles[uid]["7day_spin_times"] = self.profiles[uid].get("7day_spin_times", 0) + 1
-                self.profiles[uid]["7day_free_spin_times"] = self.profiles[uid].get("7day_free_spin_times", 0) + free_spin_times
+        # if self.profiles[uid].get("is_new",0):
+        #     reg_time = date_util.int_to_datetime(self.profiles[uid].get("first_active_time", 0))
+        #     if (time - reg_time).days <= 3:
+        #         self.profiles[uid]["3day_spin_times"] = self.profiles[uid].get("3day_spin_times", 0) + 1
+        #         self.profiles[uid]["3day_free_spin_times"] = self.profiles[uid].get("3day_free_spin_times", 0) + free_spin_times
+        #     if (time - reg_time).days <= 7:
+        #         self.profiles[uid]["7day_spin_times"] = self.profiles[uid].get("7day_spin_times", 0) + 1
+        #         self.profiles[uid]["7day_free_spin_times"] = self.profiles[uid].get("7day_free_spin_times", 0) + free_spin_times
 
         
         current_active_time = self.user_info[uid].get("current_active_time",0)
@@ -268,20 +296,33 @@ class SlotPurchaseLogParser(LogParser):
         uid = int(line[PlayBonusFormat.UID.value])
         win = int(line[PlayBonusFormat.TOTAL_WIN.value])
         bet = int(line[PlayBonusFormat.BET.value]) / 100
-        if bet != 0:
+
+        if uid not in self.profiles:
+            self.profiles[uid] = {}
+            self.user_info[uid] = {}
+            self.user_info[uid]["last_login_time"] = time
+            self.profiles[uid]["first_active_time"] = time
+            self.profiles[uid]["login_times"] = 1
+            self.profiles[uid]["spin_times"] = 0
+            self.user_info[uid]["last_spin_time"] = time
+            self.user_info[uid]["is_new"] = 0
+        
+        if self.profiles[uid].get("purchase_times", 0) >= 1:
+            return
+        if (bet != 0) & (win != 0):
             avg_bonus_win = self.profiles[uid].get("average_bonus_win", 0)
             bonus_times = self.profiles[uid].get("bonus_times", 0)
             self.profiles[uid]["average_bonus_win"] = (avg_bonus_win * bonus_times + win / bet) / (bonus_times + 1)
             self.profiles[uid]["bonus_times"] = bonus_times + 1
 
-        if self.profiles[uid].get("is_new",0):
-            reg_time = date_util.int_to_datetime(self.profiles[uid].get("first_active_time", 0))
-            if (time - reg_time).days <= 3:
-                self.profiles[uid]["3day_bonus_times"] = self.profiles[uid].get("3day_bonus_times", 0) + 1
-            if (time - reg_time).days <= 7:
-                self.profiles[uid]["7day_bonus_times"] = self.profiles[uid].get("7day_boinus_times", 0) + 1
+        # if self.profiles[uid].get("is_new",0):
+        #     reg_time = date_util.int_to_datetime(self.profiles[uid].get("first_active_time", 0))
+        #     if (time - reg_time).days <= 3:
+        #         self.profiles[uid]["3day_bonus_times"] = self.profiles[uid].get("3day_bonus_times", 0) + 1
+        #     if (time - reg_time).days <= 7:
+        #         self.profiles[uid]["7day_bonus_times"] = self.profiles[uid].get("7day_boinus_times", 0) + 1
 
-        self.current_date = datetime(time.year, time.month, time.day)
+        self.current_date = time
         current_active_time = self.user_info[uid].get("current_active_time",0)
         if current_day - self.user_info[uid].get("last_active_day", current_day) >= timedelta(days = 1): #如果发现已经到了新的一天
             
@@ -302,8 +343,10 @@ class SlotPurchaseLogParser(LogParser):
         time = date_util.int_to_datetime(int(line[SpinFormat.DATETIME.value]))
         current_day = datetime(time.year, time.month, time.day, 0, 0, 0)
         uid = int(line[PurchaseFormat.UID.value])
+        if self.profiles[uid].get("purchase_times", 0) >= 1:
+            return
         self.profiles[uid]["purchase_times"] = self.profiles[uid].get("purchase_times", 0) + 1
-        self.current_date = datetime(time.year, time.month, time.day)
+        self.current_date = time
 
 
         current_active_time = self.user_info[uid].get("current_active_time",0)
@@ -333,23 +376,28 @@ class SlotPurchaseLogParser(LogParser):
             val_format = "(%s"
             values = [uid]    
             for col, val in profile.items():
+                if col.startswith("machine"):
+                    continue
                 columns += (", " + col)
                 val_format += (", " + "%s")
                 values.append(val)
             columns += ")"
             val_format += ")"
-            sql = "insert into slot_profiles_test " + columns + " values " + val_format
+            sql = "insert into slot_purchase_profile_2018 " + columns + " values " + val_format
             conn.query(sql, values)
 
-       
+    def debug(self):
+        print(self.profiles[1673763])
+
 
 if __name__ == "__main__":
     # profiles = get_profile()
 
-    after_read_file = os.path.join(config.log_base_dir, "after_read")
-    profile_file = os.path.join(os.path.dirname(__file__), "data", "user_profiles_tmp_test")
+    after_read_file = os.path.join(config.log_base_dir, "after_read_2018")
+    profile_file = os.path.join(os.path.dirname(__file__), "data", "lot_purchase_profile_2018")
     parser = SlotPurchaseLogParser(after_read_file, outfile = profile_file)
     parser.parse()
+    # parser.debug()
     parser.output_to_file()
     parser.output_to_mysql()
 

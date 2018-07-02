@@ -7,6 +7,8 @@ import numpy as np
 from functools import reduce
 import numpy as np
 import copy
+import re
+import gc
 
 """
 反转字典的k和v
@@ -320,3 +322,51 @@ def cdf(data):
     for i,a in enumerate(_y):
         y.append(y[i] + a / l)
     return [x, y[1:]]
+
+
+
+def add(x,y):
+    return x + y
+
+def substract(x,y):
+    return x - y
+
+def times(x,y):
+    return x * y
+
+def divide(x,y):
+    return (x + 0.001)/(y + 0.001)
+
+CrossMethod = {'+':add,
+               '-':substract,
+               '*':times,
+               '/':divide,}
+
+def processCombine(df,col):
+    pattern = re.compile('(.*?)([+-/*//])(.+)')  
+    ops = ['+','-','*','/']
+    for k in col:
+        res = pattern.match(k)
+        if(res):
+            print("find combine", k)
+            k1 = res.group(1)
+            op = res.group(2)
+            k2 = res.group(3)
+            # print(res.group(0), k1, op, k2)
+        else:
+            # print('cant find  ' , k)
+            continue
+        df[k] = CrossMethod[op](df[k1], df[k2])
+    return df
+
+def dataCombine(df, col):
+    
+    """ edit col for your combined features """
+#     col =['user_age_level', 'context_page_id', 'predict_category_property2', 'user_cnt_hour_1', 'item_category_list', 'item_price_level', 'item_sales_level', 'item_collected_level', 'item_pv_level', 'day', 'user_item_cumcount', 'user_shop_nunique', 'user_cumcount', 'len_item_property', 'hour', 'len_predict_category_property', 'len_item_category', 'gender0', 'shop_score_delivery0', 'shop_cumcount', 'gender_star', 'shop_star_level', '(user_age_level-item_collected_level)', '(context_page_id+shop_cumcount)', '(context_page_id/user_item_cumcount)', '(predict_category_property2-item_pv_level)', '(predict_category_property2*item_price_level)', '(predict_category_property2-item_category_list)', '(item_category_list-len_predict_category_property)', '(item_price_level*user_cumcount)', '(item_sales_level/shop_score_delivery0)', '(item_sales_level*len_item_category)']
+    # df = df[~pd.isnull(df.is_trade)]
+    df = processCombine(df,col)
+    
+    # col.append('is_trade')
+    # df = df[col]
+    gc.collect()
+    return df
