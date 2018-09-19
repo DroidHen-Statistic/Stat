@@ -1,6 +1,6 @@
 base_dir = ""
-dbhost = "218.108.40.13"
-dbname = "wja"
+dbhost = ""
+dbname = ""
 raw_dbname = "statistic"
 dbuser = ""
 dbpassword = ""

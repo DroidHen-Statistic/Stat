@@ -3,7 +3,7 @@ library(party)
 library(dplyr)
 library(survival)
 
-con <- dbConnect(MySQL(), host = "218.108.40.13", dbname = "wja", username = "wja", password = "wja")
+
 features <- c("churn", "lifetime", "average_bet", "spin_per_active_day", "purchase_times", "average_login_interval","average_spin_interval", "average_bonus_win", "average_day_active_time", "bonus_ratio", "free_spin_ratio","active_ratio", "coin", "active_days")
 feature_str <- paste(features, collapse = ', ')
 print(feature_str)
