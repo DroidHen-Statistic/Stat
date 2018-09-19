@@ -3,6 +3,7 @@ sys.path.append("..")
 
 from MysqlConnection import MysqlConnection
 import numpy as np
+import config
 
 def centralized(l):
 	average = sum(l)/len(l)
@@ -24,7 +25,7 @@ def sim_person(i,j):
 
 
 def sim():
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	connection = MysqlConnection(config.dbhost,config.dbname,config.dbuser,config.dbpassword)
 	sql = "select * from user_item"
 	result = connection.query(sql)
 	R_u = [x[1:] for x in result]

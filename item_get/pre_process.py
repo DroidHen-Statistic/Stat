@@ -5,6 +5,7 @@ import os
 from enum import Enum,unique
 from MysqlConnection import MysqlConnection
 import utils
+import config
 
 @unique
 class ItemGetFormat(Enum):
@@ -20,7 +21,7 @@ class ItemGetFormat(Enum):
 #
 
 def readLog(day_dir, table):
-	connection = MysqlConnection("218.108.40.13","wja","wja","wja")
+	connection = MysqlConnection(config.dbhost,config.db_name,config.dbuser,config.dbpassword)
 	files = os.listdir(day_dir)
 	for file in files:
 		filename = os.path.join(day_dir,file)
